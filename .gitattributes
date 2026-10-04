@@ -1,0 +1,7 @@
+* text=auto eol=lf
+*.sh text eol=lf
+Dockerfile text eol=lf
+
+# Model weights are never committed, but if one is ever staged by mistake
+# it must not be mangled by line-ending conversion.
+*.gguf binary
