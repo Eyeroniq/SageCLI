@@ -8,6 +8,8 @@ import subprocess
 import sys
 from dataclasses import dataclass
 
+from sagecli.validator import validate
+
 TIMEOUT_EXIT_CODE = 124  # same convention as coreutils `timeout`
 
 
@@ -17,6 +19,10 @@ class UnsupportedPlatformError(RuntimeError):
             f"Refusing to execute on platform '{platform}': SageCLI only runs commands on Linux. "
             "Use --dry-run to only generate and check commands."
         )
+
+
+class BlockedCommandError(RuntimeError):
+    """Raised when asked to run a command the validator classifies as BLOCK."""
 
 
 @dataclass(frozen=True)
@@ -41,6 +47,10 @@ def run_command(command: str, timeout: float = 60.0, shell: str = "/bin/bash") -
     (not only the shell) is killed.
     """
     ensure_linux()
+    # Defence in depth: never run a BLOCK command, whatever the caller decided.
+    verdict = validate(command)
+    if verdict.blocked:
+        raise BlockedCommandError(f"Refusing to run a blocked command: {verdict.reason}")
     process = subprocess.Popen([shell, "-c", command], start_new_session=True)
     try:
         return ExecutionResult(returncode=process.wait(timeout=timeout))

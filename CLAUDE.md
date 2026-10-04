@@ -27,7 +27,7 @@ src/sagecli/
   config.py      model path resolution, generation settings, timeout, allowlist loader
   prompts.py     Phi-3 chat prompt with system instruction + 8 few-shot examples
   engine.py      lazy model loading, generate_command(), explain(), output cleanup
-  validator.py   risk classification (SAFE/WARN/BLOCK)
+  validator.py   normalisation, quote-aware splitting, named regex rules (SAFE/WARN/BLOCK)
   executor.py    runs a confirmed command with /bin/bash -c and a timeout (Linux only)
   cli.py         Typer CLI (`sage`)
 scripts/download_model.sh   resumable model download from Hugging Face
@@ -67,11 +67,61 @@ tests/           pytest suite; the LLM and subprocess are always mocked
   to confirm something that cannot run.
 - **Multi-word requests.** `sage list all files` (unquoted) is joined into one request.
 
+### Validator (regex version, step 1.2)
+
+- `validate(command, allowlist=None) -> ValidationResult(risk, rules, reason, segments, matches)`.
+  Highest risk wins; `reason` joins the reasons of the top-risk rules.
+- **Normalisation before matching:** join `\`-newline continuations; `$IFS`/`${IFS}`
+  become spaces; simple `NAME=value` assignments anywhere in the command are
+  collected and `$NAME`/`${NAME}` expanded (so `a=r;b=m;$a$b` becomes `rm`);
+  `$(echo word)`/backtick echo is inlined; brace lists at command position
+  (`{rm,-rf,/}`) are expanded; `shlex` dequotes each segment (`r""m`, `r''m`,
+  `\rm`, `r\m` become `rm`); the command is reduced to its basename (`/bin/rm`).
+- **Splitting:** a quote-aware scanner splits on `;`, `&&`, `||`, `|`, `&`, newline
+  and lifts `$(...)`, backticks, `<(...)`, `>(...)` bodies out as separate commands
+  (placeholders `$__SUBn__` / `/dev/fd/__SUBn__`). Every segment is validated.
+- **Prefix stripping:** keywords (`if`, `then`, `do`, `(`, `{`, `!`), assignments
+  and wrappers (`sudo`, `env`, `command`, `exec`, `nohup`, `nice`, `timeout`,
+  `xargs`, `busybox`, `watch`, ...) are removed, with their options. `sudo`/`doas`/
+  `pkexec` still add a WARN `privilege_escalation` match.
+- **Masking to avoid false positives:** in the text the rules see, quoted strings
+  containing spaces become `'…'`, so `echo "rm -rf /" > notes.txt` and
+  `grep -r "dd if=" .` stay SAFE. Rules are anchored at the command position.
+- **Re-validation where the shell executes a string:** `bash/sh -c STR`, `su -c`,
+  `eval ARGS`, here-strings to a shell (`sh <<< STR`), `find -exec ...`, `trap`,
+  `alias x='...'`, strings echoed/printf'd into a shell, a whole command passed as
+  one string (`watch "..."`), and quoted strings inside interpreter one-liners
+  that call `system`/`subprocess`/`exec`.
+- **Pipeline rules:** something piped into a shell or interpreter reading stdin is
+  BLOCK if any upstream stage is a downloader (`remote_pipe_shell`) or a decoder
+  (`base64 -d`, `xxd -r`, `printf '\x..'`, `rev`, `openssl -d`, ...;
+  `obfuscated_pipe_shell`), else WARN `pipe_to_shell`. A substitution used as a
+  command name or as code (`bash -c "$(curl ..)"`, `$(printf '\x72\x6d') -rf /`,
+  `bash <(curl ..)`) whose body downloads or decodes is BLOCK.
+- **Rule categories:** recursive_delete, disk_destruction, fork_bomb, permissions,
+  remote_exec, critical_file, power, privilege, process_kill, history_wipe,
+  obfuscation, interpreter, allowlist. Names are listed in `validator.ALL_RULE_NAMES`.
+- **Risk choices:** `rm -r` on an ordinary path is WARN; on `/`, `/*`, `~`, `$HOME`,
+  `*`, `.`, `..` or a top-level system dir it is BLOCK. `find -delete` is WARN, BLOCK
+  when started at `/`, `~` or a system dir. `sudo`/`su`, `eval`, `killall`,
+  `pkill -9`, plain `shred FILE`, partition tools and `chmod` on `/` are WARN.
+  `kill 1`/`kill -9 -1`, shutdown/reboot, `mkfs`, `dd of=/dev/..`, writes to
+  critical files, history/log wiping, fork bombs and remote/decoded code into a
+  shell are BLOCK.
+- **Allowlist mode:** every command name seen, including wrappers (`sudo`, `xargs`)
+  and dynamic names (`$__SUB0__`), must be listed, else BLOCK `not_in_allowlist`.
+- **Executor double-check:** `executor.run_command` re-validates and raises
+  `BlockedCommandError` on BLOCK, even if a caller skipped the CLI policy.
+- Known regex-version limits (expected; see the baseline in step 1.3): parameter
+  expansion slicing (`${PATH:0:1}`), ANSI-C quoting (`$'\x72m'`), globbed target
+  paths (`/h?me`), variables assigned from command output, and anything needing a
+  real parse tree.
+
 ## Phase checklist
 
 Phase 1: working product, baseline, Docker, CI
 - [x] 1.1 Core engine and CLI
-- [ ] 1.2 Safety layer, regex version (+100 parametrized tests)
+- [x] 1.2 Safety layer, regex version (181 parametrized validator tests)
 - [ ] 1.3 Adversarial benchmark and regex-only baseline
 - [ ] 1.4 Latency benchmark script
 - [ ] 1.5 Docker and CI

@@ -60,3 +60,10 @@ def test_timeout_kills_process_group(monkeypatch, fake_popen) -> None:
     result = executor.run_command("sleep 100", timeout=1)
     assert result.timed_out and result.returncode == executor.TIMEOUT_EXIT_CODE
     assert killed == [(4242, 9)]
+
+
+def test_blocked_command_is_refused_even_if_called_directly(monkeypatch, fake_popen) -> None:
+    monkeypatch.setattr(executor.sys, "platform", "linux")
+    with pytest.raises(executor.BlockedCommandError):
+        executor.run_command("mkfs.ext4 /dev/sda1")
+    assert fake_popen.instances == []
