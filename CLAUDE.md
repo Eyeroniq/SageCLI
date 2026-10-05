@@ -42,6 +42,7 @@ src/sagecli/
 scripts/download_model.sh          resumable model download from Hugging Face
 scripts/build_adversarial_set.py   maintainer-supplied generator for eval/adversarial.jsonl
 scripts/validator_benchmark.py     detection / false-positive report over the data set
+scripts/benchmark.py               latency benchmark with the real model (20 fixed requests)
 eval/adversarial.jsonl             256 rows: 216 attacks, 40 benign look-alikes (generated)
 benchmarks/validator_thresholds.toml  CI thresholds for the validator benchmark
 tests/           pytest suite; the LLM and subprocess are always mocked
@@ -151,13 +152,25 @@ LINUX_TESTING.md   commands the maintainer runs on Linux to verify everything
 - **Baseline:** generated once by the maintainer on Linux with
   `--layers regex --out benchmarks/validator_baseline.json`; never regenerate it.
 
+### Latency benchmark (step 1.4)
+
+- `scripts/benchmark.py` builds an `Engine` (`--model`, `--threads` via
+  `dataclasses.replace` on `GenerationSettings`), times `engine.load()` as the cold
+  start, then calls `engine.complete()` on 20 fixed, non-destructive requests so it
+  gets token counts and per-call seconds. Reports cold start, first request,
+  mean/median/p95 (nearest-rank), tokens/sec (total tokens / total generation time),
+  CPU model (`/proc/cpuinfo`), logical cores and threads. Writes
+  `benchmarks/results.md` + `.json` (gitignored). Commands are never executed.
+- Missing model or runtime: prints the engine's friendly message, exit 2.
+- Tested with `FakeLlama`; real numbers only come from running it on Linux.
+
 ## Phase checklist
 
 Phase 1: working product, baseline, Docker, CI
 - [x] 1.1 Core engine and CLI
 - [x] 1.2 Safety layer, regex version (181 parametrized validator tests)
 - [x] 1.3 Adversarial data set and benchmark script (baseline JSON: maintainer, on Linux)
-- [ ] 1.4 Latency benchmark script
+- [x] 1.4 Latency benchmark script (numbers: run on Linux)
 - [ ] 1.5 Docker and CI
 - [ ] 1.6 Minimal README and this handoff file complete; CI green
 
@@ -176,6 +189,7 @@ pytest
 bash scripts/download_model.sh   # ~2.4 GB into ./models/
 python scripts/build_adversarial_set.py          # regenerates eval/adversarial.jsonl
 python scripts/validator_benchmark.py --check    # regex layer, thresholds enforced
+python scripts/benchmark.py                      # latency, needs the model (Linux)
 sage --dry-run "show the 10 largest files in this folder"
 ```
 
@@ -195,6 +209,7 @@ NOT verified here:
 - `ruff check .` and `pytest` for anything added from step 1.3 on, including
   `tests/test_validator_benchmark.py`.
 - `scripts/validator_benchmark.py` (never run; no detection numbers exist yet).
+- `scripts/benchmark.py` with the real model; no latency numbers exist yet.
 - Loading or running the real Phi-3 model; quality of generated commands.
 - `scripts/download_model.sh` end to end (not run here; Linux shell script).
 - Real command execution, timeout kill behaviour on Linux.

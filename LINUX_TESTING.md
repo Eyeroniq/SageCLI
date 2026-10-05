@@ -39,3 +39,19 @@ python scripts/validator_benchmark.py --check
 ```
 
 `--layers structural` and `--layers both` exit with code 2 until Phase 2.
+
+## 4. Model and latency benchmark (step 1.4)
+
+Needs a C/C++ compiler and cmake for `llama-cpp-python`.
+
+```bash
+pip install -e ".[dev,llm]"
+bash scripts/download_model.sh
+sage --dry-run "show the 10 largest files in this folder"
+python scripts/benchmark.py
+```
+
+`scripts/benchmark.py` loads the model once, runs 20 fixed requests and writes
+`benchmarks/results.md` and `benchmarks/results.json` (cold start, first request,
+mean/median/p95 latency, tokens/sec, CPU model, threads). Generated commands are
+printed, never executed. Try `--threads N` to compare thread counts.
