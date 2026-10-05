@@ -24,3 +24,7 @@ htmlcov/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Validator benchmark output from ordinary runs (baseline/after files are committed)
+benchmarks/validator_results.json
+benchmarks/validator_results.md

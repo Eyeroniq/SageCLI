@@ -18,6 +18,15 @@ No network, cloud APIs or telemetry at runtime.
 - Never execute generated or dangerous commands on the dev machine. The executor
   refuses unless `sys.platform` starts with `linux`; `--dry-run` works everywhere.
 - All files use LF (`.gitattributes`). Python 3.11+.
+- **Mode override (from step 1.3, per `SAGECLI_PROMPT.md`): write and push only.** Do not
+  run pytest, ruff, pip, project scripts or benchmarks on the dev machine. The only
+  exception the maintainer asked for is `scripts/build_adversarial_set.py`, which just
+  writes `eval/adversarial.jsonl`. Every "run/measure" step becomes code plus the exact
+  command in `LINUX_TESTING.md`. CI on GitHub may be checked with `gh run list` /
+  `gh run view --log-failed` (max 3 fix attempts per phase).
+- Do not put benchmark, accuracy or detection numbers in README or docs; point to the
+  scripts. Never create or commit `benchmarks/validator_baseline.json` or
+  `validator_after.json`; the maintainer generates them on Linux.
 
 ## File layout (current)
 
@@ -30,8 +39,13 @@ src/sagecli/
   validator.py   normalisation, quote-aware splitting, named regex rules (SAFE/WARN/BLOCK)
   executor.py    runs a confirmed command with /bin/bash -c and a timeout (Linux only)
   cli.py         Typer CLI (`sage`)
-scripts/download_model.sh   resumable model download from Hugging Face
+scripts/download_model.sh          resumable model download from Hugging Face
+scripts/build_adversarial_set.py   maintainer-supplied generator for eval/adversarial.jsonl
+scripts/validator_benchmark.py     detection / false-positive report over the data set
+eval/adversarial.jsonl             256 rows: 216 attacks, 40 benign look-alikes (generated)
+benchmarks/validator_thresholds.toml  CI thresholds for the validator benchmark
 tests/           pytest suite; the LLM and subprocess are always mocked
+LINUX_TESTING.md   commands the maintainer runs on Linux to verify everything
 ```
 
 ## Design decisions
@@ -117,18 +131,39 @@ tests/           pytest suite; the LLM and subprocess are always mocked
   paths (`/h?me`), variables assigned from command output, and anything needing a
   real parse tree.
 
+### Adversarial benchmark (step 1.3)
+
+- **Data set** `eval/adversarial.jsonl` is produced by `scripts/build_adversarial_set.py`
+  (supplied by the maintainer; do not hand-write attack strings). Rows: `id`, `command`,
+  `technique`, `should_block`. Attacks = 9 destructive base commands x 23 obfuscation
+  transforms + 9 extra shapes; benign rows have technique `benign`.
+- **Counting:** an attack is *detected* when the verdict is not SAFE; the BLOCK-only
+  rate is reported separately. A benign row is a *false positive* when not SAFE.
+- **`scripts/validator_benchmark.py`** `--layers {regex,structural,both}` (only `regex`
+  works; the others exit 2 with "not implemented until Phase 2"), `--out PATH` (JSON;
+  a `.md` report is written next to it), `--dataset`, `--thresholds`, `--check`.
+  Default output `benchmarks/validator_results.{json,md}` (gitignored). Reports
+  overall and per-technique detection and block rates, false positives, and misses.
+- **Thresholds** live in `benchmarks/validator_thresholds.toml` (`min_detection_rate`,
+  `max_false_positives`), conservative defaults marked "tune after first Linux run".
+  `--check` exits 1 when not met. CI runs `--check` only once
+  `benchmarks/validator_baseline.json` exists.
+- **Baseline:** generated once by the maintainer on Linux with
+  `--layers regex --out benchmarks/validator_baseline.json`; never regenerate it.
+
 ## Phase checklist
 
 Phase 1: working product, baseline, Docker, CI
 - [x] 1.1 Core engine and CLI
 - [x] 1.2 Safety layer, regex version (181 parametrized validator tests)
-- [ ] 1.3 Adversarial benchmark and regex-only baseline
+- [x] 1.3 Adversarial data set and benchmark script (baseline JSON: maintainer, on Linux)
 - [ ] 1.4 Latency benchmark script
 - [ ] 1.5 Docker and CI
 - [ ] 1.6 Minimal README and this handoff file complete; CI green
 
-Phase 2 and Phase 3: not started (their specs were not included in the build prompt
-received so far).
+Phase 2 (bashlex structural layer, validator "after" run, sandbox preview, accuracy
+harness) and Phase 3 (full docs) are not started. Spec: `../SAGECLI_PROMPT.md`
+(kept outside the repo).
 
 ## Commands
 
@@ -139,18 +174,27 @@ pip install -e ".[dev,llm]"      # plus llama-cpp-python (compiles; Linux)
 ruff check .
 pytest
 bash scripts/download_model.sh   # ~2.4 GB into ./models/
+python scripts/build_adversarial_set.py          # regenerates eval/adversarial.jsonl
+python scripts/validator_benchmark.py --check    # regex layer, thresholds enforced
 sage --dry-run "show the 10 largest files in this folder"
 ```
 
 ## Verified here / NOT verified here
 
-Verified here (Windows dev machine, model mocked):
-- `ruff check .` and `pytest` pass (engine, CLI and executor with fakes).
+Verified here: nothing was executed locally from step 1.3 on (mode override), except
+`scripts/build_adversarial_set.py`, which only wrote `eval/adversarial.jsonl`.
+Everything else is NOT verified here; run on Linux to verify (`LINUX_TESTING.md`).
+
+History (earlier sessions, before the override; not re-checked since):
+- Steps 1.1 and 1.2 recorded `ruff check .` and `pytest` passing on Windows with fakes.
 - The model URL in `scripts/download_model.sh` answered an HTTP HEAD request on
   2026-10-04 (302 to the HF CDN, then 200, content-length 2,393,231,072 bytes).
   Only the HEAD was done; the file was not downloaded.
 
 NOT verified here:
+- `ruff check .` and `pytest` for anything added from step 1.3 on, including
+  `tests/test_validator_benchmark.py`.
+- `scripts/validator_benchmark.py` (never run; no detection numbers exist yet).
 - Loading or running the real Phi-3 model; quality of generated commands.
 - `scripts/download_model.sh` end to end (not run here; Linux shell script).
 - Real command execution, timeout kill behaviour on Linux.
