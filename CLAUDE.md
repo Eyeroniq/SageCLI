@@ -188,11 +188,19 @@ Phase 1: working product, baseline, Docker, CI
 - [x] 1.3 Adversarial data set and benchmark script (baseline JSON: maintainer, on Linux)
 - [x] 1.4 Latency benchmark script (numbers: run on Linux)
 - [x] 1.5 Docker and CI
-- [ ] 1.6 Minimal README and this handoff file complete; CI green
+- [x] 1.6 Minimal README (no numbers; points to the scripts) and this handoff file
+- [ ] Phase 1 acceptance, still open:
+  - maintainer runs `LINUX_TESTING.md` steps 2-3 on Linux, commits
+    `benchmarks/validator_baseline.{json,md}` and tunes `validator_thresholds.toml`;
+  - CI green on GitHub (check with the public API if `gh` is missing:
+    `curl -s https://api.github.com/repos/Eyeroniq/SageCLI/actions/runs?per_page=3`).
 
 Phase 2 (bashlex structural layer, validator "after" run, sandbox preview, accuracy
 harness) and Phase 3 (full docs) are not started. Spec: `../SAGECLI_PROMPT.md`
 (kept outside the repo).
+
+Tooling note: the GitHub CLI (`gh`) is not installed on the dev machine; CI status is
+read from the public GitHub REST API instead (read-only).
 
 ## Commands
 
@@ -225,7 +233,7 @@ History (earlier sessions, before the override; not re-checked since):
 
 NOT verified here:
 - `ruff check .` and `pytest` for anything added from step 1.3 on, including
-  `tests/test_validator_benchmark.py`.
+  `tests/test_validator_benchmark.py` and `tests/test_benchmark.py` (CI runs them).
 - `scripts/validator_benchmark.py` (never run; no detection numbers exist yet).
 - `scripts/benchmark.py` with the real model; no latency numbers exist yet.
 - Loading or running the real Phi-3 model; quality of generated commands.
