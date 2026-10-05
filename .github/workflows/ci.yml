@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install (no model runtime)
+        run: pip install -e ".[dev]"
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Tests
+        run: pytest
+
+      - name: Validator benchmark
+        run: |
+          if [ -f benchmarks/validator_baseline.json ]; then
+            python scripts/validator_benchmark.py --check
+          else
+            echo "benchmarks/validator_baseline.json does not exist yet: threshold check skipped."
+            python scripts/validator_benchmark.py
+          fi
+
+      - name: Upload validator results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validator-results
+          path: benchmarks/validator_results.*
+          if-no-files-found: ignore
+
+  docker:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image (no model download)
+        run: docker build -t sagecli:ci .
+
+      - name: Smoke test
+        run: docker run --rm sagecli:ci --version

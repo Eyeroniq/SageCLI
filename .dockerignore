@@ -1,0 +1,19 @@
+# Keep the build context small; the model must never be copied into the image.
+models/
+*.gguf
+.git/
+.github/
+.venv/
+venv/
+env/
+**/__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+benchmarks/
+eval/
+tests/
+docs/

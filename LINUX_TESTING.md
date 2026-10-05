@@ -55,3 +55,14 @@ python scripts/benchmark.py
 `benchmarks/results.md` and `benchmarks/results.json` (cold start, first request,
 mean/median/p95 latency, tokens/sec, CPU model, threads). Generated commands are
 printed, never executed. Try `--threads N` to compare thread counts.
+
+## 5. Docker (step 1.5)
+
+```bash
+docker build -t sagecli .
+docker run --rm sagecli --version
+docker run --rm -it -v "$PWD/models:/models:ro" -v "$PWD:/work" sagecli --dry-run "show the 10 largest files in this folder"
+```
+
+The first build compiles llama-cpp-python and takes several minutes. The model is
+read from the mounted `/models` volume and is never copied into the image.

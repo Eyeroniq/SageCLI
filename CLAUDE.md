@@ -47,6 +47,8 @@ eval/adversarial.jsonl             256 rows: 216 attacks, 40 benign look-alikes 
 benchmarks/validator_thresholds.toml  CI thresholds for the validator benchmark
 tests/           pytest suite; the LLM and subprocess are always mocked
 LINUX_TESTING.md   commands the maintainer runs on Linux to verify everything
+Dockerfile, .dockerignore          multi-stage image, model mounted at /models
+.github/workflows/ci.yml           lint, tests, validator benchmark, Docker build
 ```
 
 ## Design decisions
@@ -164,6 +166,20 @@ LINUX_TESTING.md   commands the maintainer runs on Linux to verify everything
 - Missing model or runtime: prints the engine's friendly message, exit 2.
 - Tested with `FakeLlama`; real numbers only come from running it on Linux.
 
+### Docker and CI (step 1.5)
+
+- **Dockerfile:** builder stage (`python:3.11-slim` + build-essential, cmake) installs
+  `.[llm]` into `/opt/venv` with `CMAKE_ARGS=-DGGML_NATIVE=OFF` so the image is not
+  tied to the build machine's CPU. Runtime stage copies only the venv, adds `libgomp1`
+  (OpenMP runtime for llama.cpp), sets `SAGE_MODEL_PATH=/models/Phi-3-mini-4k-instruct-q4.gguf`,
+  runs as user `sage` (uid 10001) in `/work`, `VOLUME /models`, `ENTRYPOINT ["sage"]`,
+  `CMD ["--help"]`. `.dockerignore` excludes `models/`, `*.gguf`, `.git`, venvs, tests.
+- **CI** (`ubuntu-latest`, push and PR to main): Python 3.11, `pip install -e ".[dev]"`,
+  `ruff check .`, `pytest`, then the validator benchmark: `--check` only if
+  `benchmarks/validator_baseline.json` exists, otherwise a plain run (results uploaded
+  as an artifact). A second job builds the image and runs `sagecli:ci --version`;
+  no model is downloaded.
+
 ## Phase checklist
 
 Phase 1: working product, baseline, Docker, CI
@@ -171,7 +187,7 @@ Phase 1: working product, baseline, Docker, CI
 - [x] 1.2 Safety layer, regex version (181 parametrized validator tests)
 - [x] 1.3 Adversarial data set and benchmark script (baseline JSON: maintainer, on Linux)
 - [x] 1.4 Latency benchmark script (numbers: run on Linux)
-- [ ] 1.5 Docker and CI
+- [x] 1.5 Docker and CI
 - [ ] 1.6 Minimal README and this handoff file complete; CI green
 
 Phase 2 (bashlex structural layer, validator "after" run, sandbox preview, accuracy
@@ -190,6 +206,8 @@ bash scripts/download_model.sh   # ~2.4 GB into ./models/
 python scripts/build_adversarial_set.py          # regenerates eval/adversarial.jsonl
 python scripts/validator_benchmark.py --check    # regex layer, thresholds enforced
 python scripts/benchmark.py                      # latency, needs the model (Linux)
+docker build -t sagecli .
+docker run --rm -it -v "$PWD/models:/models:ro" -v "$PWD:/work" sagecli --dry-run "list files"
 sage --dry-run "show the 10 largest files in this folder"
 ```
 
@@ -213,3 +231,4 @@ NOT verified here:
 - Loading or running the real Phi-3 model; quality of generated commands.
 - `scripts/download_model.sh` end to end (not run here; Linux shell script).
 - Real command execution, timeout kill behaviour on Linux.
+- Docker image build and run (only checked remotely by CI, if CI ran).
