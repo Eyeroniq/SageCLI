@@ -25,8 +25,13 @@ No network, cloud APIs or telemetry at runtime.
   command in `LINUX_TESTING.md`. CI on GitHub may be checked with `gh run list` /
   `gh run view --log-failed` (max 3 fix attempts per phase).
 - Do not put benchmark, accuracy or detection numbers in README or docs; point to the
-  scripts. Never create or commit `benchmarks/validator_baseline.json` or
-  `validator_after.json`; the maintainer generates them on Linux.
+  scripts. Never create, modify or regenerate the committed baselines
+  (`benchmarks/validator_baseline.json`, `benchmarks/validator_baseline_v2.json`, and
+  their `.md` files) or `validator_after*.json`; the maintainer generates them on Linux.
+- Never edit `eval/adversarial.jsonl` or `eval/adversarial_v2.jsonl` to improve results.
+- Write every file with LF endings. A lone-CR `validator_thresholds.toml` (commit
+  `e94a3e5`, an edit made on Linux) broke `tomllib` and failed CI on `f1797be`;
+  fixed in `251743b`.
 
 ## File layout (current)
 
@@ -43,7 +48,12 @@ scripts/download_model.sh          resumable model download from Hugging Face
 scripts/build_adversarial_set.py   maintainer-supplied generator for eval/adversarial.jsonl
 scripts/validator_benchmark.py     detection / false-positive report over the data set
 scripts/benchmark.py               latency benchmark with the real model (20 fixed requests)
-eval/adversarial.jsonl             256 rows: 216 attacks, 40 benign look-alikes (generated)
+eval/adversarial.jsonl             v1: 256 rows, 216 attacks, 40 benign look-alikes (generated)
+scripts/build_adversarial_set_v2.py  maintainer-supplied generator for the v2 set
+eval/adversarial_v2.jsonl          v2: 109 rows, 68 attacks, 41 benign; obfuscates arguments
+                                   and targets too (written after seeing v1 results, before
+                                   any validator change)
+benchmarks/validator_baseline{,_v2}.{json,md}  regex-only baselines (maintainer, Linux)
 benchmarks/validator_thresholds.toml  CI thresholds for the validator benchmark
 tests/           pytest suite; the LLM and subprocess are always mocked
 LINUX_TESTING.md   commands the maintainer runs on Linux to verify everything
@@ -152,8 +162,15 @@ Dockerfile, .dockerignore          multi-stage image, model mounted at /models
   `max_false_positives`), conservative defaults marked "tune after first Linux run".
   `--check` exits 1 when not met. CI runs `--check` only once
   `benchmarks/validator_baseline.json` exists.
-- **Baseline:** generated once by the maintainer on Linux with
-  `--layers regex --out benchmarks/validator_baseline.json`; never regenerate it.
+- **Baselines (committed by the maintainer on Linux, regex-only validator):**
+  `benchmarks/validator_baseline.json` (v1, `--layers regex`) and
+  `benchmarks/validator_baseline_v2.json` (v2, `--data eval/adversarial_v2.jsonl`).
+  Tag `phase1-regex-baseline` points at `f112423`; `src/sagecli/validator.py` is
+  identical there and at both baseline commits. Note: the v1 baseline files were
+  actually added in `e94a3e5`, whose message wrongly says "v2 dataset"; history is
+  not rewritten. Read `benchmarks/validator_baseline_v2.md` for current misses and
+  false positives. Thresholds: `min_detection_rate = 0.95`, `max_false_positives = 1`
+  (CI checks the v1 set only, until Phase 2 changes the gating).
 
 ### Latency benchmark (step 1.4)
 
@@ -190,11 +207,10 @@ Phase 1: working product, baseline, Docker, CI
 - [x] 1.4 Latency benchmark script (numbers: run on Linux)
 - [x] 1.5 Docker and CI
 - [x] 1.6 Minimal README (no numbers; points to the scripts) and this handoff file
-- [ ] Phase 1 acceptance, still open:
-  - maintainer runs `LINUX_TESTING.md` steps 2-3 on Linux, commits
-    `benchmarks/validator_baseline.{json,md}` and tunes `validator_thresholds.toml`;
-  - CI green on GitHub (check with the public API if `gh` is missing:
-    `curl -s https://api.github.com/repos/Eyeroniq/SageCLI/actions/runs?per_page=3`).
+- [x] Phase 1 acceptance: the maintainer ran ruff and pytest on Linux (pass), committed
+  both regex baselines and tuned the thresholds; CI green on `6b9c956`. Check CI with
+  the public API if `gh` is missing:
+  `curl -s https://api.github.com/repos/Eyeroniq/SageCLI/actions/runs?per_page=3`.
 
 Phase 2 (bashlex structural layer, validator "after" run, sandbox preview, accuracy
 harness) and Phase 3 (full docs) are not started. Spec: `../SAGECLI_PROMPT.md`
@@ -222,6 +238,9 @@ sage --dry-run "show the 10 largest files in this folder"
 
 ## Verified here / NOT verified here
 
+Verified by the maintainer on Linux (2026-10-08): `pytest`, `ruff check`, and
+`scripts/validator_benchmark.py` for both baselines.
+
 Verified here: nothing was executed locally from step 1.3 on (mode override), except
 `scripts/build_adversarial_set.py`, which only wrote `eval/adversarial.jsonl`.
 Everything else is NOT verified here; run on Linux to verify (`LINUX_TESTING.md`).
@@ -233,9 +252,6 @@ History (earlier sessions, before the override; not re-checked since):
   Only the HEAD was done; the file was not downloaded.
 
 NOT verified here:
-- `ruff check .` and `pytest` for anything added from step 1.3 on, including
-  `tests/test_validator_benchmark.py` and `tests/test_benchmark.py` (CI runs them).
-- `scripts/validator_benchmark.py` (never run; no detection numbers exist yet).
 - `scripts/benchmark.py` with the real model; no latency numbers exist yet.
 - Loading or running the real Phi-3 model; quality of generated commands.
 - `scripts/download_model.sh` end to end (not run here; Linux shell script).
