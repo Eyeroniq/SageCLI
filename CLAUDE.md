@@ -43,12 +43,17 @@ src/sagecli/
   engine.py      lazy model loading, generate_command(), explain(), output cleanup
   validator.py   normalisation, quote-aware splitting, regex rules + structural layer
   shell_parser.py bashlex AST -> simple commands + pipelines (feeds the structural layer)
+  sandbox.py     sandboxed --preview of a command (bwrap/Docker, Linux only)
   executor.py    runs a confirmed command with /bin/bash -c and a timeout (Linux only)
-  cli.py         Typer CLI (`sage`)
+  cli.py         Typer CLI (`sage`), now with --preview
 scripts/download_model.sh          resumable model download from Hugging Face
 scripts/build_adversarial_set.py   maintainer-supplied generator for eval/adversarial.jsonl
 scripts/validator_benchmark.py     detection / false-positive report over the data set
+scripts/compare_validator_runs.py  before/after table from baseline and after JSON (step 2.2)
+scripts/eval_accuracy.py           accuracy harness (exact match, verdict, latency; --mock)
+scripts/load_nl2bash.py            optional NL2Bash -> prompts.jsonl converter (dataset not vendored)
 scripts/benchmark.py               latency benchmark with the real model (20 fixed requests)
+eval/prompts.jsonl                 108 hand-written accuracy prompts (13 WARN/BLOCK)
 eval/adversarial.jsonl             v1: 256 rows, 216 attacks, 40 benign look-alikes (generated)
 scripts/build_adversarial_set_v2.py  maintainer-supplied generator for the v2 set
 eval/adversarial_v2.jsonl          v2: 109 rows, 68 attacks, 41 benign; obfuscates arguments
@@ -59,7 +64,7 @@ benchmarks/validator_thresholds.toml  CI thresholds for the validator benchmark
 tests/           pytest suite; the LLM and subprocess are always mocked
 LINUX_TESTING.md   commands the maintainer runs on Linux to verify everything
 Dockerfile, .dockerignore          multi-stage image, model mounted at /models
-.github/workflows/ci.yml           lint, tests, validator benchmark, Docker build
+.github/workflows/ci.yml           lint, tests, validator benchmark (both layers), eval --mock, Docker
 ```
 
 ## Design decisions
@@ -211,8 +216,8 @@ Dockerfile, .dockerignore          multi-stage image, model mounted at /models
   `rm_recursive` flags almost any `rm -r`, so "flagged" overstates protection.
   (The committed baselines use the older key names `detected`/`false_positives`;
   `results` has every row's verdict, so tools recompute from that.)
-- **`scripts/validator_benchmark.py`** `--layers {regex,structural,both}` (only `regex`
-  works; the others exit 2 with "not implemented until Phase 2"), `--out PATH` (JSON;
+- **`scripts/validator_benchmark.py`** `--layers {regex,structural,both}` (all three
+  work as of step 2.1; `validate(..., layers=...)` selects the layers), `--out PATH` (JSON;
   a `.md` report is written next to it), `--data PATH` (alias `--dataset`; default
   `eval/adversarial.jsonl`), `--thresholds`, `--check`.
   Default output `benchmarks/validator_results.{json,md}` (gitignored). Reports
@@ -282,10 +287,20 @@ Phase 2 (spec: `../SAGECLI_PROMPT.md`, kept outside the repo):
   `tests/test_line_endings.py` (commit `d155c45`, CI green).
 - [x] 2.1 bashlex structural layer (`src/sagecli/shell_parser.py`, structural layer in
   `validator.py`; see "Structural layer" below)
-- [ ] 2.2 compare_validator_runs.py, before/after for both data sets
-- [ ] 2.3 sandbox preview
-- [ ] 2.4 accuracy eval harness
-- [ ] 2.5 CI and handoff updates
+- [x] 2.2 `scripts/compare_validator_runs.py`: before/after table recomputed from each
+  report's `results`. Maintainer makes `validator_after{,_v2}.json` on Linux with
+  `--layers both`; baselines never touched. Thresholds raised to measured values only
+  after the Linux run.
+- [x] 2.3 `src/sagecli/sandbox.py` + `--preview` (bwrap > Docker > skip; Linux only;
+  copy-of-cwd, no network, timeout, 50 MB limit; stdout/exit + file diff). Runner and
+  platform check injected; one `@pytest.mark.sandbox` integration test.
+- [x] 2.4 `eval/prompts.jsonl` (108 rows, 13 WARN/BLOCK), `scripts/eval_accuracy.py`
+  (exact match after normalisation, verdict agreement, latency, `eval/manual_grading.csv`,
+  optional sandbox executable-equivalence, `--mock` for CI),
+  `scripts/load_nl2bash.py` (optional, dataset not vendored).
+- [x] 2.5 CI runs `eval_accuracy.py --mock`; validator benchmark gates on `--layers both`.
+  LINUX_TESTING.md and this file updated. Real numbers are produced by the maintainer
+  on Linux; none are committed or claimed here.
 
 Phase 2 rules from the maintainer: fix classes of problems with general mechanisms
 (path canonicalisation, arguments reaching a command through xargs or a pipe,
@@ -307,11 +322,14 @@ ruff check .
 pytest
 bash scripts/download_model.sh   # ~2.4 GB into ./models/
 python scripts/build_adversarial_set.py          # regenerates eval/adversarial.jsonl
-python scripts/validator_benchmark.py --check    # regex layer, thresholds enforced
+python scripts/validator_benchmark.py --layers both --check   # thresholds enforced
+python scripts/compare_validator_runs.py --baseline ... --after ...   # before/after table
+python scripts/eval_accuracy.py --mock           # harness self-check (CI); drop --mock for real
 python scripts/benchmark.py                      # latency, needs the model (Linux)
 docker build -t sagecli .
 docker run --rm -it -v "$PWD/models:/models:ro" -v "$PWD:/work" sagecli --dry-run "list files"
 sage --dry-run "show the 10 largest files in this folder"
+sage --preview --dry-run "list the files here"   # sandbox preview (bwrap/Docker, Linux)
 ```
 
 ## Verified here / NOT verified here
@@ -322,6 +340,15 @@ Verified by the maintainer on Linux (2026-10-08): `pytest`, `ruff check`, and
 Verified here: nothing was executed locally from step 1.3 on (mode override), except
 `scripts/build_adversarial_set.py`, which only wrote `eval/adversarial.jsonl`.
 Everything else is NOT verified here; run on Linux to verify (`LINUX_TESTING.md`).
+
+Phase 2 (this session): no code was executed locally. All Phase 2 code (structural
+layer, sandbox, eval harness, scripts) was written, re-read, committed and pushed;
+`ruff check` and `pytest` were confirmed green only via GitHub Actions CI on
+`ubuntu-latest` (checked with the authenticated REST API, as `gh` is not installed).
+The validator benchmark in CI gates on `--layers both` at the conservative floors.
+NOT verified anywhere yet: the real validator before/after numbers (maintainer runs
+`--layers both` on Linux), `--preview` with real bwrap/Docker, the `@pytest.mark.sandbox`
+integration test, and `eval_accuracy.py` with the real model.
 
 History (earlier sessions, before the override; not re-checked since):
 - Steps 1.1 and 1.2 recorded `ruff check .` and `pytest` passing on Windows with fakes.

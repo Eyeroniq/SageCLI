@@ -73,3 +73,68 @@ docker run --rm -it -v "$PWD/models:/models:ro" -v "$PWD:/work" sagecli --dry-ru
 
 The first build compiles llama-cpp-python and takes several minutes. The model is
 read from the mounted `/models` volume and is never copied into the image.
+
+## 6. Validator "after" run and before/after table (step 2.2)
+
+The baselines are the frozen regex-only numbers. Produce the "after" numbers with
+both layers (bashlex structural + regex) and compare. Do not touch the baselines.
+
+```bash
+python scripts/validator_benchmark.py --layers both \
+  --out benchmarks/validator_after.json --data eval/adversarial.jsonl
+python scripts/validator_benchmark.py --layers both \
+  --out benchmarks/validator_after_v2.json --data eval/adversarial_v2.jsonl
+
+python scripts/compare_validator_runs.py \
+  --baseline benchmarks/validator_baseline.json \
+  --after benchmarks/validator_after.json \
+  --out benchmarks/validator_comparison.md
+python scripts/compare_validator_runs.py \
+  --baseline benchmarks/validator_baseline_v2.json \
+  --after benchmarks/validator_after_v2.json \
+  --out benchmarks/validator_comparison_v2.md
+```
+
+Read the comparison tables, then raise the floors in
+`benchmarks/validator_thresholds.toml` to the measured `--layers both` values
+(attack BLOCK rate and benign BLOCKED) so regressions fail CI. CI already gates on
+`--layers both`; confirm it still passes:
+
+```bash
+python scripts/validator_benchmark.py --layers both --check --data eval/adversarial.jsonl
+python scripts/validator_benchmark.py --layers both --check --data eval/adversarial_v2.jsonl
+```
+
+## 7. Sandboxed preview (step 2.3)
+
+Needs bubblewrap (`sudo apt-get install bubblewrap`) or Docker.
+
+```bash
+sage --preview --dry-run "list the files here"            # uses bwrap if present
+SAGE_SANDBOX_IMAGE=debian:stable-slim sage --preview --dry-run "count lines in *.py"
+pytest -m sandbox                                         # the bwrap integration test
+```
+
+The preview runs the command against a copy of the current directory and prints the
+exit code, truncated output and the created/modified/deleted files. The real
+directory is never touched. It is a guard rail, not a security boundary.
+
+## 8. Accuracy evaluation (step 2.4, needs the model)
+
+```bash
+python scripts/eval_accuracy.py                           # real model, writes benchmarks/eval_results.*
+python scripts/eval_accuracy.py --equivalence             # also compares in the sandbox (Linux)
+# then fill in the "correct (y/n)" column:
+$EDITOR eval/manual_grading.csv
+python scripts/eval_accuracy.py --mock                    # harness self-check, no model (CI runs this)
+```
+
+Optional: convert the public NL2Bash dataset (download it yourself; not vendored):
+
+```bash
+python scripts/load_nl2bash.py --nl all.nl --cm all.cm --out eval/nl2bash.jsonl
+python scripts/eval_accuracy.py --data eval/nl2bash.jsonl
+```
+
+Accuracy, latency and detection numbers come only from these runs on your machine;
+none are committed or claimed here.

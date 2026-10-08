@@ -37,12 +37,17 @@ jobs:
               --data "${set#*:}" --out "benchmarks/validator_results_${set%%:*}.json"
           done
 
-      - name: Upload validator results
+      - name: Accuracy harness (mock engine, no model)
+        run: python scripts/eval_accuracy.py --mock --out benchmarks/eval_results.json
+
+      - name: Upload validator and eval results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: validator-results
-          path: benchmarks/validator_results*
+          name: benchmark-results
+          path: |
+            benchmarks/validator_results*
+            benchmarks/eval_results*
           if-no-files-found: ignore
 
   docker:
