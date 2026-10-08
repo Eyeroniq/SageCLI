@@ -104,7 +104,8 @@ def test_preview_refuses_non_linux(tmp_path, monkeypatch):
 
 def test_build_args_shapes():
     bwrap = sandbox._build_args("bwrap", Path("/tmp/w"), "ls")
-    assert bwrap[0] == "bwrap" and "--unshare-all" in bwrap and bwrap[-3:] == ["/bin/bash", "-c", "ls"]
+    assert bwrap[0] == "bwrap" and "--unshare-all" in bwrap
+    assert bwrap[-3:] == ["/bin/bash", "-c", "ls"]
     docker = sandbox._build_args("docker", Path("/tmp/w"), "ls")
     assert docker[:3] == ["docker", "run", "--rm"] and "--network" in docker
     assert docker[docker.index("--network") + 1] == "none"

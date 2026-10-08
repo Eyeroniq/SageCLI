@@ -41,7 +41,7 @@ DEFAULT_DOCKER_IMAGE = "debian:stable-slim"
 _OUTPUT_LIMIT = 4000  # characters of stdout/stderr kept in the result
 
 # A process runner: (args, timeout) -> object with returncode, stdout, stderr.
-Runner = Callable[[list[str], float], "subprocess.CompletedProcess[str]"]
+Runner = Callable[[list[str], float], subprocess.CompletedProcess[str]]
 
 
 @dataclass
