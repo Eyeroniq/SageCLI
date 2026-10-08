@@ -88,9 +88,15 @@ DANGER_PATH = (
 )
 # Starting points for `find ... -delete` that reach system files or all of home.
 FIND_ROOT = rf"(?:/\*?|~/?|\$HOME/?|\$\{{HOME\}}/?|/(?:{_SYS_DIRS})/?)"
-# System locations for chmod/chown -R.
+# Catastrophic sources for `mv` (relocating these destroys the layout). Unlike
+# DANGER_PATH this excludes a bare `*`, `.` and `..` so `mv * dir/` stays SAFE.
+MV_DANGER = rf"(?:/\*?|~/?\*?|\$HOME/?\*?|\$\{{HOME\}}/?\*?|/(?:{_SYS_DIRS})/?\*?)"
+# System locations for chmod/chown -R. Bare top-level dirs (incl. /home, /opt, ...)
+# match only themselves; the second group also matches subpaths under /usr etc.
 SYSTEM_PATH = (
-    r"(?:/\*?|~/?|\$HOME/?|/(?:dev|proc|root|sys|var)/?|/(?:bin|boot|etc|lib\w*|sbin|usr)(?:/\S*)?)"
+    r"(?:/\*?|~/?|\$HOME/?"
+    r"|/(?:dev|home|media|mnt|opt|proc|root|run|srv|sys|var)/?"
+    r"|/(?:bin|boot|etc|lib\w*|sbin|usr)(?:/\S*)?)"
 )
 END = r"(?=\s|$)"
 RM_RECURSIVE = r"(?:-[a-zA-Z]*[rR][a-zA-Z]*|--recursive)"
@@ -145,6 +151,9 @@ SEGMENT_RULES: tuple[Rule, ...] = (
     Rule("find_delete", "recursive_delete", W,
          _r(r"^find\b.*\s(?:-delete|-exec(?:dir)?\s+(?:rm|shred|unlink)|-ok\s+rm)\b"),
          "find deleting the files it matches."),
+    Rule("destructive_move", "recursive_delete", B,
+         _r(rf"^mv\b(?=.*\s{MV_DANGER}{END})"),
+         "Moves the whole filesystem, home or a system directory, destroying its layout."),
     Rule("obfuscated_command_destructive", "obfuscation", B,
          _r(rf"^(?:\$\S*|\S*[?*]\S*|\S+\[\S*)\s(?=.*{RM_RECURSIVE}{END})(?=.*\s{DANGER_PATH}{END})"),
          "Hidden or wildcard command name with recursive flags on a dangerous path."),
@@ -170,6 +179,10 @@ SEGMENT_RULES: tuple[Rule, ...] = (
     Rule("write_to_block_device", "disk_destruction", B,
          _r(rf"^(?:tee\b.*\s{BLOCK_DEVICE}|(?:cp|mv)\b.*\s{BLOCK_DEVICE}$)"),
          "Writes onto a raw disk device."),
+    Rule("partition_tool_device", "disk_destruction", B,
+         _r(rf"^(?:fdisk|sfdisk|cfdisk|parted|gdisk|sgdisk|partprobe)\b(?!.*\s-l\b).*"
+            rf"\s{BLOCK_DEVICE}"),
+         "Edits the partition table of a block device."),
     Rule("partition_tool", "disk_destruction", W,
          _r(r"^(?:fdisk|sfdisk|cfdisk|parted|gdisk|sgdisk)\b(?!.*\s-l\b)"),
          "Edits a partition table."),
@@ -189,10 +202,12 @@ SEGMENT_RULES: tuple[Rule, ...] = (
             rf"^(?:cp|ln|install|rsync)\b.*\s{CRITICAL_FILE}$|^dd\b.*\bof={CRITICAL_FILE}"),
          "Modifies, replaces or deletes a critical system file."),
     # Power state -------------------------------------------------------------------
-    Rule("shutdown_reboot", "power", B, _r(r"^(?:shutdown|reboot|halt|poweroff)(?:\s|$)"),
+    Rule("shutdown_reboot", "power", B,
+         _r(r"^(?:shutdown|reboot|halt|poweroff)\b(?!.*\s--(?:help|version)\b)"),
          "Shuts down or reboots the machine."),
     Rule("systemctl_power", "power", B,
-         _r(r"^systemctl\b.*\s(?:poweroff|reboot|halt|kexec|emergency|rescue)(?:\s|$)"),
+         _r(r"^systemctl\b(?!.*\s--(?:help|version)\b).*\s"
+            r"(?:poweroff|reboot|halt|kexec|emergency|rescue)(?:\s|$)"),
          "Shuts down or reboots the machine."),
     Rule("init_runlevel", "power", B, _r(r"^(?:init|telinit)\s+[06](?:\s|$)"),
          "Switches to the halt or reboot runlevel."),
@@ -206,6 +221,9 @@ SEGMENT_RULES: tuple[Rule, ...] = (
     Rule("kill_critical_process", "process_kill", B,
          _r(r"^(?:killall|pkill)\b.*\s(?:init|systemd|sshd|-u\s+root|1)$"),
          "Kills a critical system process."),
+    Rule("pkill_catchall", "process_kill", B,
+         _r(r"^pkill\b(?=.*\s-(?:9|KILL|SIGKILL)\b)(?=.*\s-f\b)(?=.*\s\.(?:\s|$))"),
+         "Force-kills every process (a catch-all pattern matches them all)."),
     Rule("mass_kill", "process_kill", W,
          _r(r"^(?:killall(?:\s|$)|pkill\b.*\s-(?:9|KILL|SIGKILL)(?:\s|$))"),
          "Kills processes by name."),
@@ -232,7 +250,8 @@ SEGMENT_RULES: tuple[Rule, ...] = (
     Rule("interpreter_delete_dangerous", "interpreter", B,
          _r(r"^(?:python[\d.]*|perl|ruby|node|nodejs|php|lua)\b.*"
             r"(?:rmtree|remove|unlink|rmdir|rm_rf|rm_r|rmSync|rimraf|delete)"
-            r".*['\"](?:/|~|~/|~/\*|/\*|/(?:etc|home|usr|var|boot|bin|lib|root)/?)['\"]"),
+            r".*['\"](?:/|~|~/|~/\*|/\*|"
+            r"/(?:etc|home|usr|var|boot|bin|lib|root|opt|srv|mnt|media)(?:/[^'\"]*)?)['\"]"),
          "Interpreter one-liner deleting /, home or a system directory.", field="full"),
     Rule("interpreter_delete", "interpreter", W,
          _r(r"^(?:python[\d.]*|perl|ruby|node|nodejs|php|lua)\b.*\s-\w*[ceEr]\w*\s.*"

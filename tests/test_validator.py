@@ -126,6 +126,15 @@ BLOCK_CASES = [
     ("echo $(rm -rf ~)", "rm_recursive_dangerous_target"),
     ("ls `reboot`", "shutdown_reboot"),
     ("if true; then rm -rf /; fi", "rm_recursive_dangerous_target"),
+    # v4-hardening additions (general mechanisms; see CLAUDE.md)
+    ("chown -R nobody /home", "recursive_perm_system"),
+    ("chmod -R 777 /opt", "recursive_perm_system"),
+    ("parted -s /dev/sda mklabel gpt", "partition_tool_device"),
+    ("sgdisk --zap-all /dev/sda", "partition_tool_device"),
+    ("mv /* /dev/null", "destructive_move"),
+    ("mv ~ /dev/null", "destructive_move"),
+    ("perl -e 'unlink glob(\"/etc/*\")'", "interpreter_delete_dangerous"),
+    ("pkill -9 -f .", "pkill_catchall"),
 ]
 
 WARN_CASES = [
@@ -196,6 +205,13 @@ SAFE_CASES = [
     "lsblk",
     "systemctl status nginx",
     "fdisk -l",
+    # v4-hardening regression guards: these must NOT be flagged
+    "shutdown --help",
+    "systemctl poweroff --help",
+    "parted -l",
+    "mv * backup/",
+    "mv old.txt new.txt",
+    "chmod -R 755 /home/me/project",
 ]
 
 
