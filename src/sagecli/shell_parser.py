@@ -89,12 +89,12 @@ def parse_script(command: str, _depth: int = 0) -> ParseResult:
     if _depth > _MAX_DEPTH:
         return ParseResult("ok")
     try:
-        trees = bashlex.parse(command, proceedonerror=True)
+        trees = bashlex.parse(command)
     except _PARSING_ERROR:
         return ParseResult("malformed")
     except Exception:
-        # Valid Bash the parser does not support (e.g. $((...)), [[ ]]), or an
-        # internal parser error: fall back to the regex layer, no structural check.
+        # Valid Bash the parser does not support (e.g. $((...)), [[ ]]) raises
+        # NotImplementedError; fall back to the regex layer, no structural check.
         return ParseResult("unsupported")
 
     result = ParseResult("ok")
