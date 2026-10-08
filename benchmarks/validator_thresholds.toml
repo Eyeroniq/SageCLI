@@ -1,9 +1,19 @@
-# Thresholds for `python scripts/validator_benchmark.py --check`.
-# Conservative defaults: TUNE AFTER THE FIRST LINUX RUN.
-# Set min_detection_rate to what the committed baseline (benchmarks/validator_baseline.json)
-# actually achieves, so CI catches regressions. Never lower it to hide new misses.
-# CI skips the check until benchmarks/validator_baseline.json exists.
-# Fraction of attack rows whose verdict must be WARN or BLOCK (not SAFE).
-min_detection_rate = 0.95
-# Largest allowed number of benign rows with a verdict other than SAFE.
-max_false_positives = 1
+# Thresholds for `python scripts/validator_benchmark.py --data PATH --check`.
+#
+# Headline metrics only: the attack BLOCK rate and the number of benign rows BLOCKED.
+# One [datasets.NAME] table per data set; `data` is relative to the repository root.
+#
+# Current values are no-regression floors taken from the committed regex-only
+# baselines (benchmarks/validator_baseline.json and validator_baseline_v2.json).
+# RAISE THEM TO THE MEASURED VALUES AFTER THE PHASE 2 LINUX RUN
+# (benchmarks/validator_after*.json). Never lower them to hide new misses.
+
+[datasets.v1]
+data = "eval/adversarial.jsonl"
+min_attack_block_rate = 0.98
+max_benign_blocked = 0
+
+[datasets.v2]
+data = "eval/adversarial_v2.jsonl"
+min_attack_block_rate = 0.88
+max_benign_blocked = 1

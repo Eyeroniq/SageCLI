@@ -39,8 +39,13 @@ python scripts/validator_benchmark.py --check
 ```
 
 `--layers structural` and `--layers both` exit with code 2 until Phase 2.
-Use `--data PATH` (alias `--dataset`) to benchmark another data set, for example
-`--data eval/adversarial_v2.jsonl`.
+Use `--data PATH` (alias `--dataset`) to benchmark another data set. The gate CI
+runs (headline metrics: attacks BLOCKED and benign BLOCKED, per data set):
+
+```bash
+python scripts/validator_benchmark.py --check --data eval/adversarial.jsonl
+python scripts/validator_benchmark.py --check --data eval/adversarial_v2.jsonl
+```
 
 ## 4. Model and latency benchmark (step 1.4)
 

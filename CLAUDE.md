@@ -150,18 +150,26 @@ Dockerfile, .dockerignore          multi-stage image, model mounted at /models
   (supplied by the maintainer; do not hand-write attack strings). Rows: `id`, `command`,
   `technique`, `should_block`. Attacks = 9 destructive base commands x 23 obfuscation
   transforms + 9 extra shapes; benign rows have technique `benign`.
-- **Counting:** an attack is *detected* when the verdict is not SAFE; the BLOCK-only
-  rate is reported separately. A benign row is a *false positive* when not SAFE.
+- **Counting (from Phase 2 prep):** four numbers per data set: attacks flagged (WARN
+  or BLOCK), **attacks blocked**, benign flagged, **benign blocked**. The two BLOCKED
+  numbers are the headline metrics and the only ones CI gates on: WARN-level
+  `rm_recursive` flags almost any `rm -r`, so "flagged" overstates protection.
+  (The committed baselines use the older key names `detected`/`false_positives`;
+  `results` has every row's verdict, so tools recompute from that.)
 - **`scripts/validator_benchmark.py`** `--layers {regex,structural,both}` (only `regex`
   works; the others exit 2 with "not implemented until Phase 2"), `--out PATH` (JSON;
   a `.md` report is written next to it), `--data PATH` (alias `--dataset`; default
   `eval/adversarial.jsonl`), `--thresholds`, `--check`.
   Default output `benchmarks/validator_results.{json,md}` (gitignored). Reports
   overall and per-technique detection and block rates, false positives, and misses.
-- **Thresholds** live in `benchmarks/validator_thresholds.toml` (`min_detection_rate`,
-  `max_false_positives`), conservative defaults marked "tune after first Linux run".
-  `--check` exits 1 when not met. CI runs `--check` only once
-  `benchmarks/validator_baseline.json` exists.
+- **Thresholds** live in `benchmarks/validator_thresholds.toml`, one `[datasets.NAME]`
+  table per data set (`data`, `min_attack_block_rate`, `max_benign_blocked`); `--check`
+  picks the table whose `data` path matches `--data` (exit 2 if none, 1 if not met).
+  Current values are no-regression floors from the regex baselines (v1 0.98 / 0;
+  v2 0.88 / 1); raise them to the measured values after the Phase 2 Linux run.
+  CI runs `--check` for both data sets.
+- **Line endings:** `tests/test_line_endings.py` reads every blob in the git index
+  (`git cat-file --batch`) and fails on any carriage return (lone CR or CRLF).
 - **Baselines (committed by the maintainer on Linux, regex-only validator):**
   `benchmarks/validator_baseline.json` (v1, `--layers regex`) and
   `benchmarks/validator_baseline_v2.json` (v2, `--data eval/adversarial_v2.jsonl`).
@@ -170,7 +178,7 @@ Dockerfile, .dockerignore          multi-stage image, model mounted at /models
   actually added in `e94a3e5`, whose message wrongly says "v2 dataset"; history is
   not rewritten. Read `benchmarks/validator_baseline_v2.md` for current misses and
   false positives. Thresholds: `min_detection_rate = 0.95`, `max_false_positives = 1`
-  (CI checks the v1 set only, until Phase 2 changes the gating).
+  (superseded: see the per-data-set thresholds above).
 
 ### Latency benchmark (step 1.4)
 

@@ -1,20 +1,22 @@
-"""Measure the safety validator against the adversarial data set.
+"""Measure the safety validator against an adversarial data set.
 
-Reads eval/adversarial.jsonl (rows: id, command, technique, should_block) and
-classifies every command with the validator. Nothing is ever executed.
+Reads a JSONL data set (rows: id, command, technique, should_block) and classifies
+every command with the validator. Nothing is ever executed.
 
-Counting rules:
-- an attack row (should_block true) is DETECTED when the verdict is not SAFE;
-  the BLOCK-only rate is reported separately;
-- a benign row (should_block false) is a FALSE POSITIVE when the verdict is not SAFE.
+Four numbers are reported:
+- attacks flagged:  attack rows (should_block true) whose verdict is WARN or BLOCK;
+- attacks blocked:  attack rows whose verdict is BLOCK          (headline metric);
+- benign flagged:   benign rows (should_block false) whose verdict is WARN or BLOCK;
+- benign blocked:   benign rows whose verdict is BLOCK          (headline metric).
 
 Usage:
-    python scripts/validator_benchmark.py                      # regex layer, default output
-    python scripts/validator_benchmark.py --layers regex --out benchmarks/validator_baseline.json
+    python scripts/validator_benchmark.py                      # v1 data set, default output
     python scripts/validator_benchmark.py --data eval/adversarial_v2.jsonl --out PATH
-    python scripts/validator_benchmark.py --check              # exit 1 if thresholds fail
+    python scripts/validator_benchmark.py --data eval/adversarial_v2.jsonl --check
 
 Writes the JSON report to --out and a Markdown report next to it (same name, .md).
+--check compares the headline metrics with the thresholds for this data set in
+benchmarks/validator_thresholds.toml.
 Exit codes: 0 ok, 1 thresholds not met (only with --check), 2 usage error.
 """
 
@@ -82,9 +84,10 @@ def run_benchmark(rows: list[dict], layers: str) -> dict:
 
     attacks = [r for r in results if r["should_block"]]
     benign = [r for r in results if not r["should_block"]]
-    detected = [r for r in attacks if r["verdict"] != "SAFE"]
-    blocked = [r for r in attacks if r["verdict"] == "BLOCK"]
-    false_positives = [r for r in benign if r["verdict"] != "SAFE"]
+    attacks_flagged = [r for r in attacks if r["verdict"] != "SAFE"]
+    attacks_blocked = [r for r in attacks if r["verdict"] == "BLOCK"]
+    benign_flagged = [r for r in benign if r["verdict"] != "SAFE"]
+    benign_blocked = [r for r in benign if r["verdict"] == "BLOCK"]
 
     by_technique: dict[str, list[dict]] = defaultdict(list)
     for r in attacks:
@@ -92,13 +95,13 @@ def run_benchmark(rows: list[dict], layers: str) -> dict:
     per_technique = {}
     for technique in sorted(by_technique):
         group = by_technique[technique]
-        n_detected = sum(r["verdict"] != "SAFE" for r in group)
+        n_flagged = sum(r["verdict"] != "SAFE" for r in group)
         n_blocked = sum(r["verdict"] == "BLOCK" for r in group)
         per_technique[technique] = {
             "total": len(group),
-            "detected": n_detected,
+            "flagged": n_flagged,
             "blocked": n_blocked,
-            "detection_rate": _rate(n_detected, len(group)),
+            "flag_rate": _rate(n_flagged, len(group)),
             "block_rate": _rate(n_blocked, len(group)),
         }
 
@@ -110,41 +113,48 @@ def run_benchmark(rows: list[dict], layers: str) -> dict:
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "attacks": len(attacks),
         "benign": len(benign),
-        "detected": len(detected),
-        "blocked": len(blocked),
-        "detection_rate": _rate(len(detected), len(attacks)),
-        "block_rate": _rate(len(blocked), len(attacks)),
-        "false_positives": len(false_positives),
-        "false_positive_rate": _rate(len(false_positives), len(benign)),
+        "attacks_flagged": len(attacks_flagged),
+        "attacks_blocked": len(attacks_blocked),
+        "attack_flag_rate": _rate(len(attacks_flagged), len(attacks)),
+        "attack_block_rate": _rate(len(attacks_blocked), len(attacks)),
+        "benign_flagged": len(benign_flagged),
+        "benign_blocked": len(benign_blocked),
+        "benign_flag_rate": _rate(len(benign_flagged), len(benign)),
+        "benign_block_rate": _rate(len(benign_blocked), len(benign)),
         "per_technique": per_technique,
-        "misses": [r for r in attacks if r["verdict"] == "SAFE"],
-        "false_positive_rows": false_positives,
+        "attacks_not_blocked": [r for r in attacks if r["verdict"] != "BLOCK"],
+        "benign_flagged_rows": benign_flagged,
         "results": results,
     }
 
 
-def load_thresholds(path: Path) -> dict:
-    """Read min_detection_rate and max_false_positives from the TOML config file."""
+def load_thresholds(path: Path, dataset: Path) -> dict:
+    """Return the [datasets.*] table of the TOML file whose `data` path is `dataset`."""
     with path.open("rb") as handle:
         data = tomllib.load(handle)
-    return {
-        "min_detection_rate": float(data["min_detection_rate"]),
-        "max_false_positives": int(data["max_false_positives"]),
-    }
+    target = dataset.resolve()
+    for name, table in data.get("datasets", {}).items():
+        if (ROOT / table["data"]).resolve() == target:
+            return {
+                "name": name,
+                "min_attack_block_rate": float(table["min_attack_block_rate"]),
+                "max_benign_blocked": int(table["max_benign_blocked"]),
+            }
+    raise KeyError(f"no [datasets.*] entry in {path} has data = {dataset}")
 
 
 def check_thresholds(report: dict, thresholds: dict) -> list[str]:
     """Return a list of failure messages (empty when every threshold is met)."""
     failures = []
-    if report["detection_rate"] < thresholds["min_detection_rate"]:
+    if report["attack_block_rate"] < thresholds["min_attack_block_rate"]:
         failures.append(
-            f"detection rate {report['detection_rate']:.2%} is below "
-            f"min_detection_rate {thresholds['min_detection_rate']:.2%}"
+            f"attack block rate {report['attack_block_rate']:.2%} is below "
+            f"min_attack_block_rate {thresholds['min_attack_block_rate']:.2%}"
         )
-    if report["false_positives"] > thresholds["max_false_positives"]:
+    if report["benign_blocked"] > thresholds["max_benign_blocked"]:
         failures.append(
-            f"{report['false_positives']} false positives exceed "
-            f"max_false_positives {thresholds['max_false_positives']}"
+            f"{report['benign_blocked']} benign rows blocked, more than "
+            f"max_benign_blocked {thresholds['max_benign_blocked']}"
         )
     return failures
 
@@ -154,67 +164,75 @@ def _cell(text: str) -> str:
     return "`" + text.replace("\n", "\\n").replace("|", "\\|").replace("`", "'") + "`"
 
 
-def render_markdown(report: dict) -> str:
+def _count(part: int, whole: int, rate: float) -> str:
+    return f"{part}/{whole} ({rate:.1%})"
+
+
+def render_markdown(report: dict, dataset_name: str) -> str:
     """Human-readable version of the report."""
+    r = report
     lines = [
-        f"# Validator benchmark ({report['layers']} layer)",
+        f"# Validator benchmark ({r['layers']} layer, {dataset_name})",
         "",
-        f"Generated {report['generated_at']} with sagecli {report['sagecli_version']}, "
-        f"Python {report['python']} on {report['platform']}.",
+        f"Generated {r['generated_at']} with sagecli {r['sagecli_version']}, "
+        f"Python {r['python']} on {r['platform']}.",
         "",
-        "Detected = verdict is not SAFE. Blocked = verdict is BLOCK.",
+        "Flagged = verdict WARN or BLOCK. Blocked = verdict BLOCK. "
+        "Headline metrics are the two BLOCKED rows.",
         "",
         "| Metric | Value |",
         "| --- | --- |",
-        f"| Attacks detected | {report['detected']}/{report['attacks']} "
-        f"({report['detection_rate']:.1%}) |",
-        f"| Attacks blocked | {report['blocked']}/{report['attacks']} "
-        f"({report['block_rate']:.1%}) |",
-        f"| False positives | {report['false_positives']}/{report['benign']} "
-        f"({report['false_positive_rate']:.1%}) |",
+        "| **Attacks blocked** | "
+        f"{_count(r['attacks_blocked'], r['attacks'], r['attack_block_rate'])} |",
+        "| Attacks flagged | "
+        f"{_count(r['attacks_flagged'], r['attacks'], r['attack_flag_rate'])} |",
+        "| **Benign blocked** | "
+        f"{_count(r['benign_blocked'], r['benign'], r['benign_block_rate'])} |",
+        "| Benign flagged | "
+        f"{_count(r['benign_flagged'], r['benign'], r['benign_flag_rate'])} |",
         "",
-        "## Per technique",
+        "## Per technique (attacks)",
         "",
-        "| Technique | Detected | Blocked |",
+        "| Technique | Blocked | Flagged |",
         "| --- | --- | --- |",
     ]
-    for technique, stats in report["per_technique"].items():
+    for technique, stats in r["per_technique"].items():
         lines.append(
-            f"| {technique} | {stats['detected']}/{stats['total']} "
-            f"({stats['detection_rate']:.0%}) | {stats['blocked']}/{stats['total']} "
-            f"({stats['block_rate']:.0%}) |"
+            f"| {technique} | {stats['blocked']}/{stats['total']} ({stats['block_rate']:.0%}) | "
+            f"{stats['flagged']}/{stats['total']} ({stats['flag_rate']:.0%}) |"
         )
-    lines += ["", f"## Missed attacks ({len(report['misses'])})", ""]
-    if report["misses"]:
-        lines += ["| ID | Technique | Command |", "| --- | --- | --- |"]
-        lines += [f"| {r['id']} | {r['technique']} | {_cell(r['command'])} |"
-                  for r in report["misses"]]
+    lines += ["", f"## Attacks not blocked ({len(r['attacks_not_blocked'])})", ""]
+    if r["attacks_not_blocked"]:
+        lines += ["| ID | Technique | Verdict | Command |", "| --- | --- | --- | --- |"]
+        lines += [f"| {x['id']} | {x['technique']} | {x['verdict']} | {_cell(x['command'])} |"
+                  for x in r["attacks_not_blocked"]]
     else:
         lines.append("None.")
-    lines += ["", f"## False positives ({len(report['false_positive_rows'])})", ""]
-    if report["false_positive_rows"]:
-        lines += ["| ID | Command | Verdict | Rules |", "| --- | --- | --- | --- |"]
-        lines += [f"| {r['id']} | {_cell(r['command'])} | {r['verdict']} | "
-                  f"{', '.join(r['rules'])} |" for r in report["false_positive_rows"]]
+    lines += ["", f"## Benign rows flagged ({len(r['benign_flagged_rows'])})", ""]
+    if r["benign_flagged_rows"]:
+        lines += ["| ID | Verdict | Rules | Command |", "| --- | --- | --- | --- |"]
+        lines += [f"| {x['id']} | {x['verdict']} | {', '.join(x['rules'])} | "
+                  f"{_cell(x['command'])} |" for x in r["benign_flagged_rows"]]
     else:
         lines.append("None.")
     return "\n".join(lines) + "\n"
 
 
-def print_summary(report: dict) -> None:
-    print(f"Validator benchmark, layers={report['layers']}")
-    print(f"  detection: {report['detected']}/{report['attacks']} ({report['detection_rate']:.1%})"
-          f"   block-only: {report['blocked']}/{report['attacks']} ({report['block_rate']:.1%})")
-    print(f"  false positives: {report['false_positives']}/{report['benign']} "
-          f"({report['false_positive_rate']:.1%})")
-    for technique, stats in report["per_technique"].items():
-        print(f"    {technique:<28} detected {stats['detected']:>3}/{stats['total']:<3}"
-              f" blocked {stats['blocked']:>3}/{stats['total']}")
-    print(f"  missed attacks: {len(report['misses'])}")
-    for r in report["misses"]:
-        print(f"    {r['id']} [{r['technique']}] {r['command']!r}")
-    for r in report["false_positive_rows"]:
-        print(f"  false positive {r['id']} {r['verdict']} {r['rules']} {r['command']!r}")
+def print_summary(report: dict, dataset_name: str) -> None:
+    r = report
+    print(f"Validator benchmark, layers={r['layers']}, data={dataset_name}")
+    print(f"  attacks blocked: {_count(r['attacks_blocked'], r['attacks'], r['attack_block_rate'])}"
+          f"   flagged: {_count(r['attacks_flagged'], r['attacks'], r['attack_flag_rate'])}")
+    print(f"  benign blocked:  {_count(r['benign_blocked'], r['benign'], r['benign_block_rate'])}"
+          f"   flagged: {_count(r['benign_flagged'], r['benign'], r['benign_flag_rate'])}")
+    for technique, stats in r["per_technique"].items():
+        print(f"    {technique:<28} blocked {stats['blocked']:>3}/{stats['total']:<3}"
+              f" flagged {stats['flagged']:>3}/{stats['total']}")
+    print(f"  attacks not blocked: {len(r['attacks_not_blocked'])}")
+    for x in r["attacks_not_blocked"]:
+        print(f"    {x['id']} [{x['technique']}] {x['verdict']} {x['command']!r}")
+    for x in r["benign_flagged_rows"]:
+        print(f"  benign flagged {x['id']} {x['verdict']} {x['rules']} {x['command']!r}")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -227,9 +245,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT,
                         help="JSON report path; the .md report is written next to it")
     parser.add_argument("--thresholds", type=Path, default=DEFAULT_THRESHOLDS,
-                        help="TOML file with min_detection_rate and max_false_positives")
+                        help="TOML file with a [datasets.NAME] table per data set")
     parser.add_argument("--check", action="store_true",
-                        help="exit 1 when the thresholds are not met")
+                        help="exit 1 when this data set's thresholds are not met")
     return parser
 
 
@@ -241,22 +259,30 @@ def main(argv: list[str] | None = None) -> int:
     if not args.dataset.is_file():
         print(f"error: data set not found: {args.dataset}", file=sys.stderr)
         return 2
+    thresholds = None
+    if args.check:
+        try:
+            thresholds = load_thresholds(args.thresholds, args.dataset)
+        except (KeyError, OSError, tomllib.TOMLDecodeError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
 
     report = run_benchmark(load_rows(args.dataset), args.layers)
+    report["data"] = args.dataset.name
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     md_path = args.out.with_suffix(".md")
-    md_path.write_text(render_markdown(report), encoding="utf-8")
-    print_summary(report)
+    md_path.write_text(render_markdown(report, args.dataset.name), encoding="utf-8")
+    print_summary(report, args.dataset.name)
     print(f"wrote {args.out} and {md_path}")
 
-    if args.check:
-        failures = check_thresholds(report, load_thresholds(args.thresholds))
+    if thresholds is not None:
+        failures = check_thresholds(report, thresholds)
         for failure in failures:
-            print(f"THRESHOLD FAILED: {failure}", file=sys.stderr)
+            print(f"THRESHOLD FAILED [{thresholds['name']}]: {failure}", file=sys.stderr)
         if failures:
             return 1
-        print("thresholds met")
+        print(f"thresholds met [{thresholds['name']}]")
     return 0
 
 

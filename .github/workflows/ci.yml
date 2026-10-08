@@ -30,21 +30,19 @@ jobs:
       - name: Tests
         run: pytest
 
-      - name: Validator benchmark
+      - name: Validator benchmark (gates on attack and benign BLOCK counts)
         run: |
-          if [ -f benchmarks/validator_baseline.json ]; then
-            python scripts/validator_benchmark.py --check
-          else
-            echo "benchmarks/validator_baseline.json does not exist yet: threshold check skipped."
-            python scripts/validator_benchmark.py
-          fi
+          for set in v1:eval/adversarial.jsonl v2:eval/adversarial_v2.jsonl; do
+            python scripts/validator_benchmark.py --layers regex --check \
+              --data "${set#*:}" --out "benchmarks/validator_results_${set%%:*}.json"
+          done
 
       - name: Upload validator results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: validator-results
-          path: benchmarks/validator_results.*
+          path: benchmarks/validator_results*
           if-no-files-found: ignore
 
   docker:
