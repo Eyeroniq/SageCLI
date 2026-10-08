@@ -14,9 +14,14 @@ Risk:    SAFE
 Run this command? [y/N]:
 ```
 
+> **Live demo:** try the safety layer in your browser — no install, nothing runs.
+> See [demo/](demo/) to launch it locally or deploy a free Hugging Face Space, then
+> drop the Space URL here.
+
 ## Table of contents
 
 - [What it is](#what-it-is)
+- [Live demo](#live-demo)
 - [How it works](#how-it-works)
 - [The safety layer](#the-safety-layer)
 - [What each file does](#what-each-file-does)
@@ -57,6 +62,14 @@ Blocked: this command will not be executed.
 ```
 
 (Output above is an example; what the model generates can differ on your machine.)
+
+## Live demo
+
+The [`demo/`](demo/) folder is a small Gradio web app for the **safety layer**: type
+any command and see whether it is SAFE / WARN / BLOCK, which rules matched, and why.
+It classifies text only — nothing is executed and no model is loaded. Run it locally
+with `python demo/app.py`, or deploy it as a free Hugging Face Space in a couple of
+clicks (see [demo/README.md](demo/README.md)) to get a shareable one-click URL.
 
 ## How it works
 

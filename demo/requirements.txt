@@ -1,0 +1,5 @@
+# Dependencies for the Hugging Face Space / local demo.
+# Installs the real SageCLI validator (and bashlex) straight from the repo, so the
+# demo always reflects the shipping safety layer. No model runtime is needed.
+gradio==4.44.1
+sagecli @ git+https://github.com/Eyeroniq/SageCLI.git
