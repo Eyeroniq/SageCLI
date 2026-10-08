@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from sagecli import __version__, cli, executor
+from sagecli import __version__, cli, executor, sandbox
 
 runner = CliRunner()
 
@@ -88,6 +88,31 @@ def test_warn_requires_typing_yes(runs, fake_engine) -> None:
 def test_explain_prints_explanation(runs) -> None:
     result = invoke("--dry-run", "--explain", "list files")
     assert "Lists all files" in result.output
+
+
+def test_preview_runs_sandbox(runs, monkeypatch) -> None:
+    captured: list[str] = []
+
+    def fake_preview(command: str):
+        captured.append(command)
+        return sandbox.PreviewResult(backend="bwrap", ran=True, returncode=0,
+                                     stdout="listing\n", created=["new.txt"])
+
+    monkeypatch.setattr(cli.sandbox, "preview", fake_preview)
+    result = invoke("--dry-run", "--preview", "list files")
+    assert result.exit_code == 0
+    assert captured == ["ls -la"]
+    assert "Preview [bwrap]" in result.output
+    assert "created: new.txt" in result.output
+
+
+def test_preview_blocked_command_is_not_previewed(runs, fake_engine, monkeypatch) -> None:
+    called: list[str] = []
+    monkeypatch.setattr(cli.sandbox, "preview", lambda command: called.append(command))
+    fake_engine.command = "rm -rf /"
+    result = invoke("--preview", "--dry-run", "wipe", )
+    assert result.exit_code == cli.EXIT_BLOCKED
+    assert called == []
 
 
 def test_missing_model_message(monkeypatch, tmp_path: Path) -> None:

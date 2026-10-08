@@ -7,7 +7,7 @@ from typing import Annotated
 
 import typer
 
-from sagecli import __version__, executor
+from sagecli import __version__, executor, sandbox
 from sagecli.config import load_allowlist, resolve_timeout
 from sagecli.engine import Engine, EngineError
 from sagecli.validator import Risk, ValidationResult, validate
@@ -49,6 +49,35 @@ def show_result(command: str, result: ValidationResult) -> None:
         typer.echo("Reason:  " + result.reason)
 
 
+def run_preview(command: str) -> None:
+    """Run a sandboxed preview and print its output and file changes."""
+    if not executor.is_linux():
+        typer.secho("Preview is only available on Linux.", fg=typer.colors.YELLOW, err=True)
+        return
+    try:
+        result = sandbox.preview(command)
+    except executor.UnsupportedPlatformError:
+        typer.secho("Preview is only available on Linux.", fg=typer.colors.YELLOW, err=True)
+        return
+    if result.skipped_reason:
+        typer.secho("Preview skipped: " + result.skipped_reason, fg=typer.colors.YELLOW)
+        return
+    status = f"Preview [{result.backend}]: exit {result.returncode}"
+    if result.timed_out:
+        status += " (timed out)"
+    typer.echo(status)
+    if result.stdout.strip():
+        typer.echo("--- stdout ---\n" + result.stdout.rstrip())
+    if result.stderr.strip():
+        typer.echo("--- stderr ---\n" + result.stderr.rstrip())
+    typer.echo(f"Files changed in a copy of this folder: {len(result.created)} created, "
+               f"{len(result.modified)} modified, {len(result.deleted)} deleted.")
+    for label, names in (("created", result.created), ("modified", result.modified),
+                         ("deleted", result.deleted)):
+        for name in names:
+            typer.echo(f"  {label}: {name}")
+
+
 def confirm_execution(risk: Risk, assume_yes: bool) -> bool:
     """Apply the confirmation policy.
 
@@ -83,6 +112,10 @@ def run(
     ] = False,
     explain: Annotated[
         bool, typer.Option("--explain", help="Also print a one-line explanation.")
+    ] = False,
+    preview: Annotated[
+        bool, typer.Option("--preview", help="Run the command in a sandbox (bwrap or Docker) "
+                           "against a copy of this folder and show what it would change.")
     ] = False,
     model: Annotated[
         Path | None,
@@ -134,6 +167,8 @@ def run(
     if result.risk is Risk.BLOCK:
         typer.secho("Blocked: this command will not be executed.", fg=typer.colors.RED, bold=True)
         raise typer.Exit(EXIT_BLOCKED)
+    if preview:
+        run_preview(command)
     if dry_run:
         typer.echo("Dry run: not executed.")
         raise typer.Exit(EXIT_OK)
