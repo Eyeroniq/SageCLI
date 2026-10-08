@@ -29,3 +29,4 @@ Thumbs.db
 benchmarks/validator_results*
 benchmarks/results.json
 benchmarks/results.md
+benchmarks/validator_comparison.md
