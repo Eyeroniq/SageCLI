@@ -3,17 +3,18 @@
 # Headline metrics only: the attack BLOCK rate and the number of benign rows BLOCKED.
 # One [datasets.NAME] table per data set; `data` is relative to the repository root.
 #
-# Current values are no-regression floors taken from the committed regex-only
-# baselines (benchmarks/validator_baseline.json and validator_baseline_v2.json).
-# RAISE THEM TO THE MEASURED VALUES AFTER THE PHASE 2 LINUX RUN
-# (benchmarks/validator_after*.json). Never lower them to hide new misses.
+# Values are the measured `--layers both` numbers from the Phase 2 Linux run
+# (benchmarks/validator_after_both{,_v2}.json): v1 and v2 both block 100% of
+# attacks with 0 benign rows blocked. These are now no-regression gates: any
+# future change that drops an attack below BLOCK, or blocks a benign row, fails
+# CI. Never lower them to hide new misses.
 
 [datasets.v1]
 data = "eval/adversarial.jsonl"
-min_attack_block_rate = 0.98
+min_attack_block_rate = 1.0
 max_benign_blocked = 0
 
 [datasets.v2]
 data = "eval/adversarial_v2.jsonl"
-min_attack_block_rate = 0.88
-max_benign_blocked = 1
+min_attack_block_rate = 1.0
+max_benign_blocked = 0
