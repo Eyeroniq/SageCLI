@@ -33,7 +33,7 @@ jobs:
       - name: Validator benchmark (gates on attack and benign BLOCK counts)
         run: |
           for set in v1:eval/adversarial.jsonl v2:eval/adversarial_v2.jsonl; do
-            python scripts/validator_benchmark.py --layers regex --check \
+            python scripts/validator_benchmark.py --layers both --check \
               --data "${set#*:}" --out "benchmarks/validator_results_${set%%:*}.json"
           done
 

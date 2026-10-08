@@ -39,7 +39,6 @@ DEFAULT_DATASET = ROOT / "eval" / "adversarial.jsonl"
 DEFAULT_OUT = ROOT / "benchmarks" / "validator_results.json"
 DEFAULT_THRESHOLDS = ROOT / "benchmarks" / "validator_thresholds.toml"
 LAYERS = ("regex", "structural", "both")
-IMPLEMENTED_LAYERS = ("regex",)
 
 
 def load_rows(path: Path) -> list[dict]:
@@ -58,9 +57,7 @@ def load_rows(path: Path) -> list[dict]:
 
 def classify(command: str, layers: str) -> tuple[Risk, tuple[str, ...]]:
     """Return (risk, rule names) for one command using the selected validator layers."""
-    if layers not in IMPLEMENTED_LAYERS:
-        raise NotImplementedError(f"--layers {layers} is not implemented until Phase 2")
-    result = validate(command)
+    result = validate(command, layers=layers)
     return result.risk, result.rules
 
 
@@ -238,7 +235,7 @@ def print_summary(report: dict, dataset_name: str) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--layers", choices=LAYERS, default="regex",
-                        help="validator layers to use (structural/both arrive in Phase 2)")
+                        help="validator layers to use: regex, structural or both")
     parser.add_argument("--data", "--dataset", dest="dataset", type=Path,
                         default=DEFAULT_DATASET,
                         help="JSONL data set (default: eval/adversarial.jsonl)")
@@ -253,9 +250,6 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    if args.layers not in IMPLEMENTED_LAYERS:
-        print(f"error: --layers {args.layers} is not implemented until Phase 2", file=sys.stderr)
-        return 2
     if not args.dataset.is_file():
         print(f"error: data set not found: {args.dataset}", file=sys.stderr)
         return 2

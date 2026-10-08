@@ -18,6 +18,7 @@ classifiers = [
 ]
 dependencies = [
     "typer>=0.12",
+    "bashlex>=0.18",
 ]
 
 [project.optional-dependencies]

@@ -41,7 +41,8 @@ src/sagecli/
   config.py      model path resolution, generation settings, timeout, allowlist loader
   prompts.py     Phi-3 chat prompt with system instruction + 8 few-shot examples
   engine.py      lazy model loading, generate_command(), explain(), output cleanup
-  validator.py   normalisation, quote-aware splitting, named regex rules (SAFE/WARN/BLOCK)
+  validator.py   normalisation, quote-aware splitting, regex rules + structural layer
+  shell_parser.py bashlex AST -> simple commands + pipelines (feeds the structural layer)
   executor.py    runs a confirmed command with /bin/bash -c and a timeout (Linux only)
   cli.py         Typer CLI (`sage`)
 scripts/download_model.sh          resumable model download from Hugging Face
@@ -144,6 +145,60 @@ Dockerfile, .dockerignore          multi-stage image, model mounted at /models
   paths (`/h?me`), variables assigned from command output, and anything needing a
   real parse tree.
 
+### Structural layer (step 2.1)
+
+- **`src/sagecli/shell_parser.py`** parses a command with `bashlex` (a real Bash
+  parser) into a flat list of `SimpleCommand(argv, redirects)` plus `pipelines`
+  (lists of stages). It recurses into pipelines, lists, compounds, `$(...)` /
+  backticks / `<(...)`, and re-parses the string payloads of `sh -c` / `bash -c`,
+  `eval`, here-strings to a shell (`<<<`) and `find -exec`. `bashlex` dequotes for
+  us (`r""m`→`rm`, `"$HOME"`→`$HOME`), so the structural layer sees clean argv.
+- `parse_script` never raises. Its `status` is `ok`, `malformed` (true syntax
+  error), `unsupported` (valid Bash bashlex lacks, e.g. `$((...))`, `[[ ]]`) or
+  `unavailable` (bashlex not importable).
+- **Two layers, combined.** `validate(command, allowlist=None, *, layers="both")`
+  runs the regex layer and/or the structural layer; the verdict is the most severe
+  match from the layers that ran, and every matched rule name is reported. Default
+  is `both` (the CLI and the executor use it). The benchmark passes
+  `--layers {regex,structural,both}`.
+- **Parse-failure policy:** `malformed` adds a WARN `could_not_parse_structure`
+  (reason "could not parse structure"). `unsupported`/`unavailable` fall back to
+  the regex layer silently — a blanket WARN on every unsupported construct would
+  flag ordinary commands like `echo $((1+2))`, so only genuine syntax errors warn.
+- **Structural checks** (general mechanisms, not dataset strings), each BLOCK:
+  - *rm recursive with a canonicalised dangerous target.* `posixpath.normpath`
+    resolves `/.`, `//`, `/tmp/..`, `$(pwd)/..` (a leading `$(...)`/`$PWD` is
+    treated as a non-root absolute dir) and flags the result when it is `/` or its
+    first component is a system dir — so `/var/lib` blocks while `/tmp/mydir` does
+    not. Home targets are left to the regex layer (bare `$HOME`/`~` block, subdirs
+    warn), so `rm -rf "$HOME/.cache/pip"` stays WARN.
+  - *xargs argument reconstruction.* For `echo`/`printf ... | xargs [opts] CMD`,
+    the emitted words are rebuilt into `CMD ...` (honouring `-I{}`) and re-checked
+    with the regex layer. This catches arguments that reach a command through the
+    pipe: `echo "of=/dev/sda" | xargs dd`, `echo "-R 777 /" | xargs chmod`,
+    `echo "-9 1" | xargs kill`, `… | xargs shred`, `… | xargs rm`, `-I{} rm -rf {}`.
+  - *dd `of=` a block device*, *mkfs-family naming a block device*, *recursive
+    chmod/chown on a system path*, *redirect `>`/`>>` onto a critical file or block
+    device*, *download/decoder piped into a shell* — parsed-argv versions of the
+    regex rules, reusing the shared `BLOCK_DEVICE` / `CRITICAL_FILE` / `SYSTEM_PATH`
+    fragments. Benign look-alikes stay unblocked (verified against the benign rows).
+
+**Validator change log (step 2.1), why each change:**
+- `mkfs` split into `mkfs_device` (BLOCK, requires a `/dev/` block device) and
+  `mkfs` (now WARN). Phase 2 rule: mkfs/dd are BLOCK only for block devices under
+  `/dev/`. Fixes the v2 benign false BLOCK `mkfs.ext4 ./disk.img` (now WARN). dd was
+  already device-scoped (`of=/dev/...`), so unchanged. `xargs mkfs.ext4` keeps
+  BLOCKing via structural reconstruction, not the bare name.
+- Interpreter one-liners: `$ENV{VAR}` / `$ENV{'VAR'}` is normalised to `$VAR`
+  before re-analysis, so `perl -e 'system("rm -rf $ENV{HOME}")'` is seen as
+  `rm -rf $HOME` and blocks. General mechanism (Perl/Ruby env access → shell var).
+- Added `shell_parser` import and the structural layer; added
+  `could_not_parse_structure` to `ALL_RULE_NAMES`.
+- `bashlex>=0.18` is now a core dependency (in `pyproject.toml`).
+- These are improvements over the frozen regex-only baselines; the committed
+  baseline JSON files are untouched. The before/after comparison (step 2.2) runs
+  the old `--layers regex` baseline against the new `--layers both` result.
+
 ### Adversarial benchmark (step 1.3)
 
 - **Data set** `eval/adversarial.jsonl` is produced by `scripts/build_adversarial_set.py`
@@ -167,7 +222,9 @@ Dockerfile, .dockerignore          multi-stage image, model mounted at /models
   picks the table whose `data` path matches `--data` (exit 2 if none, 1 if not met).
   Current values are no-regression floors from the regex baselines (v1 0.98 / 0;
   v2 0.88 / 1); raise them to the measured values after the Phase 2 Linux run.
-  CI runs `--check` for both data sets.
+  CI runs `--check` for both data sets. As of step 2.1 CI gates on `--layers both`
+  (the shipping validator), still at the conservative floors; raise the floors to the
+  measured values only after the Linux run.
 - **Line endings:** `tests/test_line_endings.py` reads every blob in the git index
   (`git cat-file --batch`) and fails on any carriage return (lone CR or CRLF).
 - **Baselines (committed by the maintainer on Linux, regex-only validator):**
@@ -223,7 +280,8 @@ Phase 1: working product, baseline, Docker, CI
 Phase 2 (spec: `../SAGECLI_PROMPT.md`, kept outside the repo):
 - [x] Prep: four-number benchmark report, BLOCK-rate gates for v1 and v2 in CI,
   `tests/test_line_endings.py` (commit `d155c45`, CI green).
-- [ ] 2.1 bashlex structural layer (next step; nothing written yet)
+- [x] 2.1 bashlex structural layer (`src/sagecli/shell_parser.py`, structural layer in
+  `validator.py`; see "Structural layer" below)
 - [ ] 2.2 compare_validator_runs.py, before/after for both data sets
 - [ ] 2.3 sandbox preview
 - [ ] 2.4 accuracy eval harness

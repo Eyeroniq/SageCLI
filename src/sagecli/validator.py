@@ -33,6 +33,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from enum import IntEnum
 
+from sagecli import shell_parser
+
 
 class Risk(IntEnum):
     SAFE = 0
@@ -152,7 +154,10 @@ SEGMENT_RULES: tuple[Rule, ...] = (
     Rule("dd_to_device", "disk_destruction", B,
          _r(r"^dd\b.*\bof=/dev/(?!null\b|zero\b|stdout\b|stderr\b|tty\b)"),
          "dd writing directly to a device."),
-    Rule("mkfs", "disk_destruction", B, _r(r"^(?:mkfs(?:\.\w+)?|mke2fs|mkswap|mkdosfs)(?:\s|$)"),
+    Rule("mkfs_device", "disk_destruction", B,
+         _r(rf"^(?:mkfs(?:\.\w+)?|mke2fs|mkswap|mkdosfs)\b.*\s{BLOCK_DEVICE}"),
+         "Creates a filesystem on a block device, erasing it."),
+    Rule("mkfs", "disk_destruction", W, _r(r"^(?:mkfs(?:\.\w+)?|mke2fs|mkswap|mkdosfs)(?:\s|$)"),
          "Creates a filesystem, erasing the target."),
     Rule("wipefs", "disk_destruction", B, _r(r"^(?:wipefs|blkdiscard)(?:\s|$)"),
          "Wipes filesystem signatures or discards a whole device."),
@@ -257,7 +262,13 @@ RAW_RULES: tuple[Rule, ...] = (
 ALL_RULE_NAMES: tuple[str, ...] = tuple(
     r.name for r in RAW_RULES + SEGMENT_RULES
 ) + ("remote_pipe_shell", "obfuscated_pipe_shell", "pipe_to_shell", "remote_code_exec",
-     "obfuscated_exec", "not_in_allowlist")
+     "obfuscated_exec", "not_in_allowlist", "could_not_parse_structure")
+
+# Shared patterns reused by the structural layer, compiled for whole-token matching.
+_SYS_DIR_SET = frozenset(_SYS_DIRS.split("|"))
+_BLOCK_DEVICE_RE = re.compile(BLOCK_DEVICE)
+_CRITICAL_FILE_RE = re.compile(CRITICAL_FILE)
+_SYSTEM_PATH_RE = re.compile(SYSTEM_PATH + r"$")
 
 
 # ---------------------------------------------------------------------------
@@ -623,7 +634,9 @@ def _nested_code(cmd: str, args: list[str], wrappers: list[str], full: str, ctx:
                 nested.append(_render(rest[:end], mask=False))
     elif cmd in INTERPRETERS or re.fullmatch(r"python[\d.]*", cmd) or cmd in ("awk", "gawk",
                                                                              "mawk"):
-        code = " ".join(args)
+        # Perl/Ruby expose the environment as $ENV{VAR}; map it to the shell's $VAR
+        # so `rm -rf $ENV{HOME}` is seen as `rm -rf $HOME`.
+        code = re.sub(r"\$ENV\{\s*'?(\w+)'?\s*\}", r"$\1", " ".join(args))
         if re.search(r"system|popen|subprocess|exec|spawn|`|qx", code):
             nested.extend(m.group(2) for m in re.finditer(r"(['\"])(.+?)\1", code))
     # Substitutions used as the command name or as code for an executing command.
@@ -674,12 +687,216 @@ def _pipeline_rules(stages: list[tuple[str, list[str], str, list[str]]], ctx: _C
                     _analyse(" ".join(a for a in s[1] if not a.startswith("-")), ctx)
 
 
-def validate(command: str, allowlist: frozenset[str] | None = None) -> ValidationResult:
-    """Classify `command`. With `allowlist`, any binary not listed is BLOCKed."""
+# ---------------------------------------------------------------------------
+# Structural layer (bashlex): a second, independent check on parsed commands
+# ---------------------------------------------------------------------------
+
+def _normpath(path: str) -> str:
+    """POSIX normpath, collapsing the special leading `//` to `/`."""
+    norm = posixpath.normpath(path)
+    if norm.startswith("//") and not norm.startswith("///"):
+        norm = "/" + norm.lstrip("/")
+    return norm
+
+
+def _canonical_target_is_dangerous(target: str) -> bool:
+    """True if a recursive deletion target resolves to /, a system dir or everything.
+
+    Canonicalising the path catches `rm -rf /.`, `//`, `/tmp/..` and `/var/lib`,
+    which the regex layer's literal patterns miss. Home targets are left to the
+    regex layer, which blocks bare `$HOME`/`~` but only warns on their subdirs.
+    """
+    t = target.strip()
+    if not t:
+        return False
+    if t == "*":
+        return True
+    if re.match(r"^(?:~|\$HOME\b|\$\{HOME\})", t):
+        return False
+    # A leading command substitution or $PWD is a non-root absolute directory, so
+    # `$(pwd)/..` walks up to / just as a literal path would.
+    t = re.sub(r"^(?:\$\([^)]*\)|`[^`]*`|\$\{?PWD\}?)", "/__abs__", t)
+    if not t.startswith("/"):
+        return False
+    norm = _normpath(t)
+    if norm == "/":
+        return True
+    first = norm.split("/", 2)[1] if len(norm) > 1 else ""
+    return first in _SYS_DIR_SET
+
+
+def _rm_targets(cmd: shell_parser.SimpleCommand) -> tuple[bool, list[str]]:
+    """Return (recursive?, target words) for an `rm` command, flag order aside."""
+    recursive = False
+    targets: list[str] = []
+    opts_done = False
+    for arg in cmd.argv[1:]:
+        if not opts_done and arg == "--":
+            opts_done = True
+            continue
+        if not opts_done and arg.startswith("-") and len(arg) > 1:
+            if arg == "--recursive" or (not arg.startswith("--") and re.search(r"[rR]", arg)):
+                recursive = True
+            continue
+        targets.append(arg)
+    return recursive, targets
+
+
+def _emitted_words(producer: shell_parser.SimpleCommand) -> list[str]:
+    """Words an `echo`/`printf` producer prints, as `xargs` would split them."""
+    args = list(producer.argv[1:])
+    if producer.program == "printf":
+        args = args[1:]  # drop the format string
+    else:
+        while args and re.fullmatch(r"-[neE]+", args[0]):
+            args = args[1:]
+    words: list[str] = []
+    for arg in args:
+        words.extend(arg.split())
+    return words
+
+
+_XARGS_VALUE_OPTS = frozenset({"-n", "-P", "-d", "-L", "-l", "-s", "-a", "-E", "-e",
+                               "--max-args", "--max-procs", "--delimiter", "--arg-file",
+                               "--max-lines"})
+
+
+def _xargs_command(tokens: list[str]) -> tuple[list[str], str | None]:
+    """Split xargs options from the command it runs; return (command, replace-string)."""
+    replace: str | None = None
+    i = 0
+    while i < len(tokens):
+        tok = tokens[i]
+        if not tok.startswith("-"):
+            break
+        if tok in ("-I", "-i", "--replace"):
+            replace = tokens[i + 1] if i + 1 < len(tokens) else "{}"
+            i += 2 if i + 1 < len(tokens) else 1
+        elif tok.startswith("-I"):
+            replace = tok[2:] or "{}"
+            i += 1
+        elif tok.startswith("--replace="):
+            replace = tok.split("=", 1)[1] or "{}"
+            i += 1
+        elif tok in _XARGS_VALUE_OPTS:
+            i += 2
+        else:
+            i += 1
+    return tokens[i:], replace
+
+
+def _reads_stdin(stage: shell_parser.SimpleCommand) -> bool:
+    """True if a shell stage runs whatever it is piped (no -c string, no script arg)."""
+    args = stage.argv[1:]
+    if any(a.startswith("-") and "c" in a.lstrip("-") for a in args):
+        return False
+    return not any(not a.startswith("-") for a in args)
+
+
+def _structural_command(cmd: shell_parser.SimpleCommand, ctx: _Ctx) -> None:
+    prog = cmd.program
+    full = " ".join(cmd.argv)
+    if prog == "rm":
+        recursive, targets = _rm_targets(cmd)
+        if recursive and any(_canonical_target_is_dangerous(t) for t in targets):
+            _add(ctx, "rm_recursive_dangerous_target", "recursive_delete", Risk.BLOCK,
+                 "Recursive deletion of /, a system directory or everything "
+                 "(after resolving the path).", full)
+    elif prog == "dd":
+        if any(a.startswith("of=") and _BLOCK_DEVICE_RE.match(a[3:]) for a in cmd.argv[1:]):
+            _add(ctx, "dd_to_device", "disk_destruction", Risk.BLOCK,
+                 "dd writing directly to a block device.", full)
+    elif re.fullmatch(r"mkfs(?:\.\w+)?|mke2fs|mkswap|mkdosfs", prog):
+        if any(_BLOCK_DEVICE_RE.match(a) for a in cmd.argv[1:]):
+            _add(ctx, "mkfs_device", "disk_destruction", Risk.BLOCK,
+                 "Creates a filesystem on a block device, erasing it.", full)
+    elif prog in ("chmod", "chown", "chgrp"):
+        recursive = any(a == "--recursive" or (a.startswith("-") and not a.startswith("--")
+                        and "R" in a) for a in cmd.argv[1:])
+        targets = [a for a in cmd.argv[1:] if not a.startswith("-")]
+        if recursive and any(_SYSTEM_PATH_RE.match(t) for t in targets):
+            _add(ctx, "recursive_perm_system", "permissions", Risk.BLOCK,
+                 "Recursive permission or ownership change on a system path.", full)
+    for redirect in cmd.redirects:
+        if redirect.type in (">", ">>") and (_CRITICAL_FILE_RE.match(redirect.target) or
+                                             _BLOCK_DEVICE_RE.match(redirect.target)):
+            _add(ctx, "redirect_to_critical_file", "critical_file", Risk.BLOCK,
+                 "Redirects output onto a critical file or block device.", full)
+
+
+def _structural_xargs(producer: shell_parser.SimpleCommand,
+                      xargs_stage: shell_parser.SimpleCommand, ctx: _Ctx) -> None:
+    """Rebuild the command xargs runs from an echo/printf producer and re-check it.
+
+    This catches attacks where the dangerous arguments reach the command through
+    the pipe, e.g. `echo "-rf /" | xargs rm` or `echo "of=/dev/sda" | xargs dd`.
+    """
+    if producer.program not in ("echo", "printf"):
+        return
+    emitted = _emitted_words(producer)
+    if not emitted:
+        return
+    command, replace = _xargs_command(list(xargs_stage.argv[1:]))
+    if not command:
+        return
+    if replace:
+        joined = " ".join(emitted)
+        rebuilt = " ".join(tok.replace(replace, joined) for tok in command)
+    else:
+        rebuilt = " ".join(command + emitted)
+    for match in validate(rebuilt, layers="regex").matches:
+        ctx.matches.append(Match(match.rule, match.category, match.risk, match.reason, rebuilt))
+
+
+def _structural_pipeline(stages: list[shell_parser.SimpleCommand], ctx: _Ctx) -> None:
+    for i, stage in enumerate(stages):
+        if i == 0:
+            continue
+        if stage.program == "xargs":
+            _structural_xargs(stages[i - 1], stage, ctx)
+        if stage.program in SHELLS and _reads_stdin(stage):
+            upstream = stages[:i]
+            texts = [" ".join(s.argv) for s in upstream]
+            if any(s.program in DOWNLOADERS for s in upstream):
+                _add(ctx, "remote_pipe_shell", "remote_exec", Risk.BLOCK,
+                     "Pipes content downloaded from the network into a shell.",
+                     " ".join(stage.argv))
+            elif any(DECODER_RE.search(t) for t in texts):
+                _add(ctx, "obfuscated_pipe_shell", "obfuscation", Risk.BLOCK,
+                     "Pipes decoded or de-obfuscated data into a shell.",
+                     " ".join(stage.argv))
+
+
+def _structural(command: str, ctx: _Ctx) -> None:
+    """Run the bashlex-based structural layer, appending matches to `ctx`."""
+    result = shell_parser.parse_script(command)
+    if result.status == "malformed":
+        _add(ctx, "could_not_parse_structure", "structure", Risk.WARN,
+             "Could not parse the command structure; treating it as risky.", command.strip())
+        return
+    if result.status != "ok":
+        return  # unsupported syntax or bashlex missing: rely on the regex layer
+    for cmd in result.commands:
+        _structural_command(cmd, ctx)
+    for stages in result.pipelines:
+        _structural_pipeline(stages, ctx)
+
+
+def validate(command: str, allowlist: frozenset[str] | None = None, *,
+             layers: str = "both") -> ValidationResult:
+    """Classify `command`. With `allowlist`, any binary not listed is BLOCKed.
+
+    `layers` selects the validator layers: "regex", "structural" or "both"
+    (default). The verdict is the most severe match from the layers that ran, and
+    every matched rule name is reported.
+    """
     if not command or not command.strip():
         return ValidationResult(Risk.SAFE, reason="Empty command.")
     ctx = _Ctx(allowlist=allowlist)
-    _analyse(command, ctx)
+    if layers in ("regex", "both"):
+        _analyse(command, ctx)
+    if layers in ("structural", "both"):
+        _structural(command, ctx)
     if allowlist is not None:
         outside = sorted({c for c in ctx.commands if c and c not in allowlist})
         if outside or not ctx.commands:

@@ -120,12 +120,13 @@ def test_main_check_without_thresholds_entry_is_usage_error(tmp_path, capsys):
     assert "no [datasets.*] entry" in capsys.readouterr().err
 
 
-@pytest.mark.parametrize("layers", ["structural", "both"])
-def test_unimplemented_layers_exit_2(tmp_path, layers, capsys):
-    code = bench.main(["--layers", layers, "--out", str(tmp_path / "r.json")])
-    assert code == 2
-    assert "not implemented until Phase 2" in capsys.readouterr().err
-    assert not (tmp_path / "r.json").exists()
+@pytest.mark.parametrize("layers", ["regex", "structural", "both"])
+def test_all_layers_run(tmp_path, layers):
+    out = tmp_path / "r.json"
+    code = bench.main(["--layers", layers, "--data", str(_write_dataset(tmp_path)),
+                       "--out", str(out)])
+    assert code == 0
+    assert json.loads(out.read_text(encoding="utf-8"))["layers"] == layers
 
 
 @pytest.mark.parametrize("name", ["adversarial.jsonl", "adversarial_v2.jsonl"])
