@@ -220,9 +220,21 @@ Phase 1: working product, baseline, Docker, CI
   the public API if `gh` is missing:
   `curl -s https://api.github.com/repos/Eyeroniq/SageCLI/actions/runs?per_page=3`.
 
-Phase 2 (bashlex structural layer, validator "after" run, sandbox preview, accuracy
-harness) and Phase 3 (full docs) are not started. Spec: `../SAGECLI_PROMPT.md`
-(kept outside the repo).
+Phase 2 (spec: `../SAGECLI_PROMPT.md`, kept outside the repo):
+- [x] Prep: four-number benchmark report, BLOCK-rate gates for v1 and v2 in CI,
+  `tests/test_line_endings.py` (commit `d155c45`, CI green).
+- [ ] 2.1 bashlex structural layer (next step; nothing written yet)
+- [ ] 2.2 compare_validator_runs.py, before/after for both data sets
+- [ ] 2.3 sandbox preview
+- [ ] 2.4 accuracy eval harness
+- [ ] 2.5 CI and handoff updates
+
+Phase 2 rules from the maintainer: fix classes of problems with general mechanisms
+(path canonicalisation, arguments reaching a command through xargs or a pipe,
+interpreter one-liners handled structurally), never special-case dataset strings;
+mkfs/dd and similar are BLOCK only when the target is a block device under /dev/;
+never edit the dataset files; record every validator change and why in this file.
+Phase 3 (full docs) is not started.
 
 Tooling note: the GitHub CLI (`gh`) is not installed on the dev machine; CI status is
 read from the public GitHub REST API instead (read-only).
