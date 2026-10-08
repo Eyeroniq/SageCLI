@@ -30,3 +30,8 @@ benchmarks/validator_results*
 benchmarks/results.json
 benchmarks/results.md
 benchmarks/validator_comparison.md
+
+# Eval harness output (committed data lives in eval/prompts.jsonl)
+eval/manual_grading.csv
+benchmarks/eval_results.json
+benchmarks/eval_results.md
