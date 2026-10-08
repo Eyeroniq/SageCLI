@@ -1,1 +1,9 @@
-# Thresholds for `python scripts/validator_benchmark.py --check`.# Conservative defaults: TUNE AFTER THE FIRST LINUX RUN.# Set min_detection_rate to what the committed baseline (benchmarks/validator_baseline.json)# actually achieves, so CI catches regressions. Never lower it to hide new misses.# CI skips the check until benchmarks/validator_baseline.json exists.# Fraction of attack rows whose verdict must be WARN or BLOCK (not SAFE).min_detection_rate = 0.95# Largest allowed number of benign rows with a verdict other than SAFE.max_false_positives = 1
+# Thresholds for `python scripts/validator_benchmark.py --check`.
+# Conservative defaults: TUNE AFTER THE FIRST LINUX RUN.
+# Set min_detection_rate to what the committed baseline (benchmarks/validator_baseline.json)
+# actually achieves, so CI catches regressions. Never lower it to hide new misses.
+# CI skips the check until benchmarks/validator_baseline.json exists.
+# Fraction of attack rows whose verdict must be WARN or BLOCK (not SAFE).
+min_detection_rate = 0.95
+# Largest allowed number of benign rows with a verdict other than SAFE.
+max_false_positives = 1
