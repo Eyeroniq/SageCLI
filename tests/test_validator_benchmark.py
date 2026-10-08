@@ -64,6 +64,13 @@ def test_main_writes_json_and_markdown(tmp_path):
     assert "Missed attacks (1)" in markdown
 
 
+def test_data_is_an_alias_of_dataset(tmp_path):
+    out = tmp_path / "result.json"
+    code = bench.main(["--data", str(_write_dataset(tmp_path)), "--out", str(out)])
+    assert code == 0
+    assert json.loads(out.read_text(encoding="utf-8"))["attacks"] == 3
+
+
 def test_main_check_fails_below_threshold(tmp_path):
     thresholds = tmp_path / "t.toml"
     thresholds.write_text("min_detection_rate = 0.9\nmax_false_positives = 5\n", encoding="utf-8")

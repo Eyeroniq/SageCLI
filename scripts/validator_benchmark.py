@@ -11,6 +11,7 @@ Counting rules:
 Usage:
     python scripts/validator_benchmark.py                      # regex layer, default output
     python scripts/validator_benchmark.py --layers regex --out benchmarks/validator_baseline.json
+    python scripts/validator_benchmark.py --data eval/adversarial_v2.jsonl --out PATH
     python scripts/validator_benchmark.py --check              # exit 1 if thresholds fail
 
 Writes the JSON report to --out and a Markdown report next to it (same name, .md).
@@ -220,7 +221,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--layers", choices=LAYERS, default="regex",
                         help="validator layers to use (structural/both arrive in Phase 2)")
-    parser.add_argument("--dataset", type=Path, default=DEFAULT_DATASET,
+    parser.add_argument("--data", "--dataset", dest="dataset", type=Path,
+                        default=DEFAULT_DATASET,
                         help="JSONL data set (default: eval/adversarial.jsonl)")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT,
                         help="JSON report path; the .md report is written next to it")

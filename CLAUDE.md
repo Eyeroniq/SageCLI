@@ -144,7 +144,8 @@ Dockerfile, .dockerignore          multi-stage image, model mounted at /models
   rate is reported separately. A benign row is a *false positive* when not SAFE.
 - **`scripts/validator_benchmark.py`** `--layers {regex,structural,both}` (only `regex`
   works; the others exit 2 with "not implemented until Phase 2"), `--out PATH` (JSON;
-  a `.md` report is written next to it), `--dataset`, `--thresholds`, `--check`.
+  a `.md` report is written next to it), `--data PATH` (alias `--dataset`; default
+  `eval/adversarial.jsonl`), `--thresholds`, `--check`.
   Default output `benchmarks/validator_results.{json,md}` (gitignored). Reports
   overall and per-technique detection and block rates, false positives, and misses.
 - **Thresholds** live in `benchmarks/validator_thresholds.toml` (`min_detection_rate`,

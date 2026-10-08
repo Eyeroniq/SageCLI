@@ -39,6 +39,8 @@ python scripts/validator_benchmark.py --check
 ```
 
 `--layers structural` and `--layers both` exit with code 2 until Phase 2.
+Use `--data PATH` (alias `--dataset`) to benchmark another data set, for example
+`--data eval/adversarial_v2.jsonl`.
 
 ## 4. Model and latency benchmark (step 1.4)
 
