@@ -62,6 +62,7 @@ eval/adversarial_v2.jsonl          v2: 109 rows, 68 attacks, 41 benign; obfuscat
 benchmarks/validator_baseline{,_v2}.{json,md}  regex-only baselines (maintainer, Linux)
 benchmarks/validator_thresholds.toml  CI thresholds for the validator benchmark
 tests/           pytest suite; the LLM and subprocess are always mocked
+docs/WORKING.md, docs/INSTALLATION.md  full Phase 3 documentation (linked from README)
 LINUX_TESTING.md   commands the maintainer runs on Linux to verify everything
 Dockerfile, .dockerignore          multi-stage image, model mounted at /models
 .github/workflows/ci.yml           lint, tests, validator benchmark (both layers), eval --mock, Docker
@@ -332,7 +333,22 @@ Phase 2 rules from the maintainer: fix classes of problems with general mechanis
 interpreter one-liners handled structurally), never special-case dataset strings;
 mkfs/dd and similar are BLOCK only when the target is a block device under /dev/;
 never edit the dataset files; record every validator change and why in this file.
-Phase 3 (full docs) is not started.
+
+Phase 3 (full docs) — DONE, no code changes:
+- [x] 3.1 README.md rewritten for beginners (TOC, flow diagram, SAFE/WARN/BLOCK,
+  safety examples, flags/env vars, install, troubleshooting, glossary, limitations).
+  Per the mode override, no benchmark numbers in the README; it points to the scripts
+  and the committed `benchmarks/validator_comparison*.md`.
+- [x] 3.2 `docs/WORKING.md`: big picture + a fully traced example, background concepts,
+  a file-by-file walkthrough of EVERY file, the safety layer in depth, evaluation,
+  the test suite, Docker/CI, config reference, extending, trade-offs, and a
+  15-question interview cheat sheet.
+- [x] 3.3 `docs/INSTALLATION.md`: requirements, Ubuntu/Debian + Fedora/Arch, venv +
+  install, model download (+ manual fallback), first-run examples, tests/benchmarks,
+  Docker, pipx/alias, a verification checklist, a Problem/Cause/Fix table, uninstall.
+- [x] 3.4 This handoff updated. Both docs are linked from README.md; command and file
+  names in the docs were checked against the real code; expected outputs are labelled
+  illustrative and no accuracy/latency/detection numbers were invented.
 
 Tooling note: the GitHub CLI (`gh`) is not installed on the dev machine; CI status is
 read from the public GitHub REST API instead (read-only).
